@@ -1,0 +1,9 @@
+BasedOnStyle: Microsoft
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+BreakBeforeBraces: Allman
+ColumnLimit: 120
+NamespaceIndentation: None
+AllowShortFunctionsOnASingleLine: Empty
+SortIncludes: CaseSensitive
