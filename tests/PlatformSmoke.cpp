@@ -15,6 +15,7 @@
 
 class PaintProbe : public Yukiri::Widget
 {
+protected:
 	void OnPaint(Yukiri::Canvas& canvas) override
 	{
 		canvas.FillRectangle({20, 20, 120, 80}, Yukiri::Color::FromHex(0x3674EA), 12);
@@ -26,6 +27,27 @@ class PaintProbe : public Yukiri::Widget
 		canvas.DrawLine({30, 240}, {260, 280}, GetTheme().m_Text, 2);
 		canvas.DrawText("Yukiri / 中文字体回退", {20, 110}, GetTheme().m_Text, 16);
 	}
+};
+
+struct ReplacementState
+{
+	bool m_Destroyed = false;
+	bool m_DestroyedEarly = false;
+};
+class ReplacingPaintProbe : public PaintProbe
+{
+public:
+	explicit ReplacingPaintProbe(std::shared_ptr<ReplacementState> state) : m_State(std::move(state)) {}
+	~ReplacingPaintProbe() override { m_State->m_Destroyed = true; }
+protected:
+	void OnPaint(Yukiri::Canvas& canvas) override
+	{
+		PaintProbe::OnPaint(canvas);
+		GetWindow()->SetContent(std::make_unique<PaintProbe>());
+		m_State->m_DestroyedEarly = m_State->m_Destroyed;
+	}
+private:
+	std::shared_ptr<ReplacementState> m_State;
 };
 
 int main()
@@ -55,13 +77,26 @@ int main()
 		std::cerr << (!first ? first.error().m_Message : second.error().m_Message) << '\n';
 		return 4;
 	}
-	(*first)->SetContent(std::make_unique<PaintProbe>());
+	auto replacement = std::make_shared<ReplacementState>();
+	(*first)->SetContent(std::make_unique<ReplacingPaintProbe>(replacement));
 	(*second)->SetTheme(Yukiri::ThemeMode::Dark);
 	(*second)->SetContent(std::make_unique<PaintProbe>());
+	std::cout << "Window UI scale: " << (*first)->GetScale() << '\n';
+	bool firstClosed = false;
+	bool secondClosed = false;
+	bool reentryRejected = false;
+	auto firstConnection = (*first)->m_Closed.Connect([&]
+	{
+		firstClosed = true;
+		auto nested = application.Poll(false);
+		reentryRejected = !nested && nested.error().m_Code == Yukiri::ErrorCode::InvalidArgument;
+	});
+	auto secondConnection = (*second)->m_Closed.Connect([&] { secondClosed = true; });
 #if defined(_WIN32)
 	int windowCount = 0;
 	auto** nativeWindows = SDL_GetWindows(&windowCount);
 	bool maxHitVerified = false;
+	bool overlappedVerified = false;
 	for (int i = 0; i < windowCount; ++i)
 	{
 		if (!(SDL_GetWindowFlags(nativeWindows[i]) & SDL_WINDOW_BORDERLESS)) continue;
@@ -72,10 +107,15 @@ int main()
 		POINT point{client.right - static_cast<LONG>(69 * scale), static_cast<LONG>(20 * scale)};
 		ClientToScreen(handle, &point);
 		maxHitVerified = SendMessageW(handle, WM_NCHITTEST, 0, MAKELPARAM(point.x, point.y)) == HTMAXBUTTON;
+		overlappedVerified = (GetWindowLongPtrW(handle, GWL_STYLE) & WS_POPUP) == 0;
 	}
 	SDL_free(nativeWindows);
-	if (!maxHitVerified) return 9;
+	if (!maxHitVerified || !overlappedVerified) return 9;
 #endif
+	auto primed = application.Poll(false);
+	auto repainted = application.Poll(false);
+	if (!primed || !repainted || !replacement->m_Destroyed || replacement->m_DestroyedEarly ||
+		(*first)->GetContent()->GetBounds().Empty()) return 11;
 	for (int frame = 0; frame < 8; ++frame)
 	{
 		if (frame == 3) { auto resized = (*second)->SetSize({640, 420}); if (!resized) return 10; }
@@ -90,11 +130,11 @@ int main()
 	}
 	(*first)->Close();
 	auto remaining = application.Poll(false);
-	if (!remaining || !*remaining)
+	if (!remaining || !*remaining || !firstClosed || !reentryRejected || secondClosed)
 		return 6;
 	application.Quit();
 	auto finished = application.Poll(false);
-	if (!finished || *finished)
+	if (!finished || *finished || !secondClosed)
 		return 7;
 	if (application.GetValidationErrorCount() != 0)
 		return 8;

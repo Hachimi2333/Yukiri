@@ -36,12 +36,12 @@ Result<Window*> OpenGallery(Application& application, WindowDecoration decoratio
 
 Gallery::Gallery(Application& application, Window& window) : m_Application(application), m_Window(window)
 {
-	auto root = std::make_unique<StackPanel>(Orientation::Vertical, 20);
+	auto root = std::make_unique<StackPanel>(Orientation::Vertical, 20.0f);
 	root->SetPadding(Insets(24));
-	auto& heading = root->AddChild<StackPanel>(Orientation::Vertical, 4);
+	auto& heading = root->AddChild<StackPanel>(Orientation::Vertical, 4.0f);
 	Heading(heading, "Yukiri", 32);
 	Heading(heading, "Modern desktop UI, thoughtfully simple.  /  简洁的现代桌面界面", 13);
-	auto& actions = root->AddChild<ResponsivePanel>(190, 4, 8);
+	auto& actions = root->AddChild<ResponsivePanel>(190.0f, 4, 8.0f);
 	auto& theme = actions.AddChild<ComboBox>(std::vector<std::string>{"Theme: System / 跟随系统", "Theme: Light / 浅色", "Theme: Dark / 深色"});
 	auto themeIndex = theme.SetSelectedIndex(static_cast<int>(window.GetConfig().m_Theme));
 	(void)themeIndex;
@@ -49,7 +49,7 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	auto& customWindow = actions.AddChild<Button>("Custom title bar / 自绘标题栏");
 	auto& reset = actions.AddChild<Button>("Reset controls / 重置");
 	m_Tabs = &root->AddChild<TabView>();
-	auto controls = std::make_unique<ResponsivePanel>(340, 2, 16);
+	auto controls = std::make_unique<ResponsivePanel>(340.0f, 2, 16.0f);
 	auto& actionCard = controls->AddChild<Card>();
 	Heading(actionCard, "Actions / 按钮", 18);
 	Heading(actionCard, "Click, focus, and keyboard activation", 12);
@@ -79,7 +79,7 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	auto& layoutCard = controls->AddChild<Card>();
 	Heading(layoutCard, "Layout / 布局", 18);
 	auto& form = layoutCard.AddChild<Grid>();
-	form.SetColumns({GridLength::Pixels(66), GridLength::Star()});
+	form.SetColumns({GridLength::Pixels(90), GridLength::Star()});
 	form.SetRows({GridLength::Auto()});
 	form.SetSpacing(10, 0);
 	auto& name = form.AddChild<Label>("Name / 名称");
@@ -90,7 +90,7 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	Heading(layoutCard, "Nested scrolling / 嵌套滚动", 12);
 	m_InnerScroll = &layoutCard.AddChild<ScrollView>();
 	m_InnerScroll->SetHeight(102);
-	auto rows = std::make_unique<StackPanel>(Orientation::Vertical, 4);
+	auto rows = std::make_unique<StackPanel>(Orientation::Vertical, 4.0f);
 	for (int i = 1; i <= 12; ++i)
 	{
 		auto& row = rows->AddChild<Button>(std::format("Scrollable item {:02} / 项目", i));
@@ -106,7 +106,7 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	auto& overlayLabel = overlay.AddChild<Label>("Overlay alignment / 叠放对齐");
 	overlayLabel.SetAlignment(Alignment::Center, Alignment::Center);
 	m_Tabs->AddTab("Controls / 控件", std::move(controls));
-	auto textPage = std::make_unique<ResponsivePanel>(340, 2, 16);
+	auto textPage = std::make_unique<ResponsivePanel>(340.0f, 2, 16.0f);
 	auto& textCard = textPage->AddChild<Card>();
 	Heading(textCard, "Typography / 文字", 18);
 	auto& sample = Heading(textCard, "Yukiri, 你好，世界。\n0123456789  AV ffi\nText shaping and font fallback.", 18);

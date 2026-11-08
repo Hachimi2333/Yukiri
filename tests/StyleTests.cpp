@@ -19,7 +19,7 @@ TEST_CASE("Theme overrides inherit through the widget tree", "[style]")
 	tree.m_Root->SetThemeOverride(Yukiri::Theme::Light());
 	REQUIRE(child.GetTheme().m_Background.m_R == Yukiri::Theme::Light().m_Background.m_R);
 	Yukiri::WidgetStyle style;
-	style.m_FontSize = 20;
+	style.m_FontSize = 20.0f;
 	child.SetStyle(style);
 	REQUIRE(child.GetFontSize() == 20);
 }

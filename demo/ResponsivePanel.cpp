@@ -19,7 +19,7 @@ Yukiri::Size ResponsivePanel::OnMeasure(Yukiri::Size available)
 	float total = 0;
 	float rowHeight = 0;
 	int index = 0;
-	for (const auto& child : GetChildren())
+	for (auto* child : Children())
 	{
 		child->Measure({width, available.m_Height});
 		rowHeight = std::max(rowHeight, child->GetDesiredSize().m_Height);

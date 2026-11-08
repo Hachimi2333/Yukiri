@@ -4,13 +4,13 @@
 
 WindowDecoration 提供 Native / Custom，默认为 Native，创建时确定。ThemeMode 提供 System / Light / Dark，默认跟随系统。
 
-Application::Create 返回 expected<unique_ptr<Application>, Error>；CreateWindow 返回由 Application 拥有的 Window 观察指针，窗口关闭并完成下一次 Poll 后该指针失效。Run 驱动主循环，Poll 可用于外部循环。所有窗口 / UI API 在创建 Application 的线程调用。
+Application::Create 返回 expected<unique_ptr<Application>, Error>；CreateWindow 返回由 Application 拥有的 Window 观察指针，窗口关闭并完成下一次 Poll 后该指针失效；保存返回的 Connection 以监听 m_Closed，并在回调内清空外部观察指针。Run 驱动主循环，Poll 可用于外部循环。所有窗口 / UI API 在创建 Application 的线程调用。Poll 不可重入；失败返回 ErrorCode::InvalidArgument。
 
 Close 只标记关闭，实际销毁在事件处理的安全边界完成。创建窗口的配置先校验尺寸；m_Visible=false 可用于自动化 smoke。
 
 ## 控件与布局
 
-Window::SetContent 接管根控件。使用 AddChild<T> 创建并添加子控件，返回引用；Keep 保存 Signal::Connect 返回的 Connection，连接对象离开作用域会断开。RemoveChild / ClearChildren 在输入分发期间延迟执行。
+Window::SetContent 接管根控件。使用 AddChild<T> 创建并添加子控件，返回引用；Keep 保存 Signal::Connect 返回的 Connection，连接对象离开作用域会断开。RemoveChild / ClearChildren 在输入、布局和绘制分发期间延迟执行。
 
 Measure 的 desired size 包含 margin；Arrange 接收全局逻辑坐标的槽位，扣除 margin 后按尺寸约束与 alignment 排列。OnArrange 的内容矩形也使用全局逻辑坐标；OnPaint 的 Canvas 已平移到控件局部坐标。
 
@@ -31,3 +31,46 @@ ScrollView 使用 SetContent，默认纵向滚动，可启用横向滚动；支�
 WindowConfig::m_Decoration 在创建时选择 Native / Custom，默认 Native。自绘模式绘制标题与标准系统按钮，客户根控件在标题栏下排列。窗口支持 SetSize、Minimize、Maximize 和 Restore，可失败操作返回 expected。
 
 公共接口不用包含 Windows.h。与 Win32 混用时使用 CreateWindowW / DrawTextW 等显式名称；Yukiri 头文件会移除同名宏别名，避免覆盖 C++ 成员名称。
+
+## 最小应用
+
+链接 Yukiri::Yukiri 后，可编写以下 Main.cpp；自有源文件使用 UTF-8：
+
+```cpp
+#include <Yukiri/Yukiri.hpp>
+#include <iostream>
+#include <string>
+
+int main()
+{
+	auto created = Yukiri::Application::Create();
+	if (!created)
+	{
+		std::cerr << created.error().m_Message << '\n';
+		return 1;
+	}
+	auto app = std::move(*created);
+	auto opened = app->CreateWindow();
+	if (!opened)
+	{
+		std::cerr << opened.error().m_Message << '\n';
+		return 2;
+	}
+	auto root = std::make_unique<Yukiri::StackPanel>();
+	root->SetPadding({24, 24, 24, 24});
+	auto& label = root->AddChild<Yukiri::Label>("Count: 0");
+	auto& button = root->AddChild<Yukiri::Button>("Click me");
+	button.Keep(button.m_Clicked.Connect([&label, count = 0]() mutable
+	{
+		label.SetText("Count: " + std::to_string(++count));
+	}));
+	(*opened)->SetContent(std::move(root));
+	auto result = app->Run();
+	if (!result) std::cerr << result.error().m_Message << '\n';
+	return result ? 0 : 3;
+}
+```
+
+自定义控件继承 Widget，并重写 OnMeasure、OnArrange 或 OnPaint；OnPaint 接收局部坐标 Canvas。逻辑尺寸使用 DIP，Window::GetScale 返回实际缩放，GetContentBounds 返回排除自绘标题栏的全局逻辑内容区域。
+
+Signal::Connect 可带弱生命周期保护；Connection 析构自动断开。回调内允许断开连接或触发其他信号，当前分发使用连接快照。不要在回调内析构正在执行的 Application。

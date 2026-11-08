@@ -168,7 +168,7 @@ Result<std::unique_ptr<WindowChrome>> WindowChrome::Create(Window& owner, SDL_Wi
 	auto chrome = std::unique_ptr<WindowChrome>(new WindowChrome(std::move(impl)));
 	const auto handle = chrome->m_Impl->m_Handle;
 	const auto style = GetWindowLongPtrW(handle, GWL_STYLE);
-	SetWindowLongPtrW(handle, GWL_STYLE, style | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+	SetWindowLongPtrW(handle, GWL_STYLE, (style & ~static_cast<LONG_PTR>(WS_POPUP)) | WS_OVERLAPPEDWINDOW);
 	const MARGINS margins{0, 0, 1, 0};
 	DwmExtendFrameIntoClientArea(handle, &margins);
 	SetWindowPos(handle, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);

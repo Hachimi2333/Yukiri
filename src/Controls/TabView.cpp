@@ -40,7 +40,7 @@ Size TabView::OnMeasure(Size available)
 {
 	Size desired;
 	for (const auto& header : Headers()) desired.m_Width = std::max(desired.m_Width, header.Right());
-	for (const auto& child : GetChildren())
+	for (auto* child : Children())
 	{
 		child->Measure({available.m_Width, std::max(0.0f, available.m_Height - 44)});
 		desired.m_Width = std::max(desired.m_Width, child->GetDesiredSize().m_Width);
@@ -51,7 +51,7 @@ Size TabView::OnMeasure(Size available)
 }
 void TabView::OnArrange(Rect content)
 {
-	for (const auto& child : GetChildren()) child->Arrange({content.m_X, content.m_Y + 44, content.m_Width, std::max(0.0f, content.m_Height - 44)});
+	for (auto* child : Children()) child->Arrange({content.m_X, content.m_Y + 44, content.m_Width, std::max(0.0f, content.m_Height - 44)});
 }
 void TabView::OnPaint(Canvas& canvas)
 {

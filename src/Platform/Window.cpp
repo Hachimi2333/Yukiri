@@ -50,6 +50,12 @@ Size Window::GetSize() const
 }
 
 float Window::GetScale() const { return std::max(1.0f, SDL_GetWindowDisplayScale(m_Impl->m_Native)); }
+Rect Window::GetContentBounds() const
+{
+	const auto size = GetSize();
+	const float titleHeight = m_Impl->m_Chrome ? m_Impl->m_Chrome->GetHeight() : 0;
+	return {0, titleHeight, size.m_Width, std::max(0.0f, size.m_Height - titleHeight)};
+}
 
 void Window::SetContent(std::unique_ptr<Widget> content) { m_Impl->m_Tree.SetRoot(std::move(content)); Invalidate(); }
 Widget* Window::GetContent() const noexcept { return m_Impl->m_Tree.m_Root.get(); }
@@ -111,24 +117,30 @@ Result<void> Window::Restore() { return PlatformOperation(SDL_RestoreWindow(m_Im
 
 Result<void> Window::Update()
 {
+	if (SDL_GetWindowFlags(m_Impl->m_Native) & SDL_WINDOW_MINIMIZED)
+	{
+		m_Impl->m_Dirty = m_Impl->m_Tree.m_Dirty = m_Impl->m_Tree.m_Animating = false;
+		return {};
+	}
 	m_Impl->m_Tree.Tick();
 	const auto blink = SDL_GetTicks() / 500;
 	if (m_Impl->m_Tree.m_Focus && m_Impl->m_Tree.m_Focus->AcceptsTextInput() && blink != m_Impl->m_BlinkTick)
 		m_Impl->m_Tree.m_Dirty = true;
 	m_Impl->m_BlinkTick = blink;
 	if (!m_Impl->m_Dirty && !m_Impl->m_Tree.m_Dirty) return {};
+	m_Impl->m_Dirty = false;
+	m_Impl->m_Tree.m_Dirty = false;
 	Detail::DrawList list;
 	const auto size = GetSize();
-	const float titleHeight = m_Impl->m_Chrome ? m_Impl->m_Chrome->GetHeight() : 0;
-	m_Impl->m_Tree.Layout({size.m_Width, std::max(0.0f, size.m_Height - titleHeight)}, {0, titleHeight});
+	const auto content = GetContentBounds();
+	m_Impl->m_Tree.Layout({content.m_Width, content.m_Height}, {content.m_X, content.m_Y});
 	Canvas canvas(list, size, m_Impl->m_Text, GetScale());
 	m_Impl->m_Tree.Paint(canvas);
 	if (m_Impl->m_Chrome) m_Impl->m_Chrome->Paint(canvas);
 	if (list.m_Error) return std::unexpected(*list.m_Error);
 	auto result = m_Impl->m_Renderer->Draw(list, size, GetTheme().m_Background);
 	if (!result) return result;
-	m_Impl->m_Dirty = false;
-	m_Impl->m_Tree.m_Dirty = false;
+	if (m_Impl->m_Renderer->NeedsRetry()) m_Impl->m_Dirty = true;
 	return {};
 }
 }

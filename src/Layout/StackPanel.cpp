@@ -14,7 +14,7 @@ Size StackPanel::OnMeasure(Size available)
 	else available.m_Width = std::numeric_limits<float>::infinity();
 	Size desired;
 	std::size_t count = 0;
-	for (const auto& child : GetChildren())
+	for (auto* child : Children())
 	{
 		if (!child->IsVisible()) continue;
 		child->Measure(available);
@@ -31,7 +31,7 @@ void StackPanel::OnArrange(Rect content)
 {
 	const bool vertical = m_Orientation == Orientation::Vertical;
 	float offset = 0;
-	for (const auto& child : GetChildren())
+	for (auto* child : Children())
 	{
 		if (!child->IsVisible()) continue;
 		const auto desired = child->GetDesiredSize();

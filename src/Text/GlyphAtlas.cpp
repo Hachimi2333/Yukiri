@@ -15,6 +15,9 @@ Result<TextEngine::Glyph> TextEngine::GetGlyph(Font& font, std::uint32_t glyph, 
 	if (FT_Load_Glyph(font.m_Face, glyph, FT_LOAD_DEFAULT) || FT_Render_Glyph(font.m_Face->glyph, FT_RENDER_MODE_NORMAL))
 		return std::unexpected(Error{ErrorCode::FontLoading, "Rasterizing a font glyph failed."});
 	const auto& bitmap = font.m_Face->glyph->bitmap;
+	if (bitmap.width && bitmap.rows && bitmap.pixel_mode != FT_PIXEL_MODE_GRAY &&
+		bitmap.pixel_mode != FT_PIXEL_MODE_MONO && bitmap.pixel_mode != FT_PIXEL_MODE_BGRA)
+		return std::unexpected(Error{ErrorCode::FontLoading, "The font uses an unsupported glyph bitmap format."});
 	Glyph result;
 	result.m_Left = static_cast<float>(font.m_Face->glyph->bitmap_left);
 	result.m_Top = static_cast<float>(font.m_Face->glyph->bitmap_top);
@@ -72,8 +75,8 @@ Result<void> TextEngine::Draw(DrawList& list, std::string_view text, Point posit
 	{
 		auto glyph = GetGlyph(*item.m_Font, item.m_Glyph, pixels);
 		if (!glyph) return std::unexpected(glyph.error());
-		list.Add({position.m_X + item.m_X + glyph->m_Left / scale,
-			position.m_Y + shaped.m_Ascent + item.m_Y - glyph->m_Top / scale,
+		list.Add({std::round((position.m_X + item.m_X) * scale + glyph->m_Left) / scale,
+			std::round((position.m_Y + shaped.m_Ascent + item.m_Y) * scale - glyph->m_Top) / scale,
 			glyph->m_Width / scale, glyph->m_Height / scale}, color, clip, 0, 0, glyph->m_Texture, glyph->m_Uv, true);
 	}
 	return {};

@@ -14,6 +14,7 @@ struct Window::Impl
 	SDL_Window* m_Native = nullptr;
 	WindowConfig m_Config;
 	bool m_Open = true;
+	bool m_CloseNotified = false;
 	bool m_Dirty = true;
 	std::unique_ptr<Detail::WindowRenderer> m_Renderer;
 	Detail::WidgetTree m_Tree;

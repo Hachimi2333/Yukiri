@@ -6,17 +6,30 @@ int main(int argc, char** argv)
 {
 	bool smoke = false;
 	bool custom = false;
+	bool idle = false;
 	for (int i = 1; i < argc; ++i)
 	{
 		if (std::string_view(argv[i]) == "--smoke") smoke = true;
 		if (std::string_view(argv[i]) == "--custom") custom = true;
+		if (std::string_view(argv[i]) == "--idle-smoke") idle = true;
 	}
 	auto application = Yukiri::Application::Create({"Yukiri Demo", true});
 	if (!application) { std::cerr << application.error().m_Message << '\n'; return 1; }
 	auto& app = **application;
 	auto mainWindow = YukiriDemo::OpenGallery(app, custom ? Yukiri::WindowDecoration::Custom : Yukiri::WindowDecoration::Native,
-		Yukiri::ThemeMode::System, !smoke);
+		Yukiri::ThemeMode::System, !smoke && !idle);
 	if (!mainWindow) { std::cerr << mainWindow.error().m_Message << '\n'; return 2; }
+	if (idle)
+	{
+		for (int i = 0; i < 12; ++i)
+		{
+			auto polled = app.Poll(true);
+			if (!polled) return 10;
+		}
+		app.Quit();
+		auto closed = app.Poll(false);
+		return closed && !*closed && !app.GetValidationErrorCount() ? 0 : 11;
+	}
 	if (smoke)
 	{
 		auto second = YukiriDemo::OpenGallery(app, Yukiri::WindowDecoration::Custom, Yukiri::ThemeMode::Dark, false);

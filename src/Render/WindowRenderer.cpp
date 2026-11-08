@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <iostream>
 
 namespace Yukiri::Detail
 {
@@ -62,6 +63,8 @@ void WindowRenderer::ReleaseSwapchain()
 
 WindowRenderer::~WindowRenderer()
 {
+	if (SDL_GetEnvironmentVariable(SDL_GetEnvironment(), "YUKIRI_TRACE_FRAMES"))
+		std::cout << "[Yukiri] Presented frames: " << m_PresentCount << '\n';
 	vkDeviceWaitIdle(m_Device.m_Device);
 	ReleaseSwapchain();
 	for (auto& frame : m_Frames)
@@ -146,6 +149,7 @@ Result<void> WindowRenderer::Recreate()
 
 Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color background)
 {
+	m_NeedsRetry = false;
 	int width = 0;
 	int height = 0;
 	SDL_GetWindowSizeInPixels(m_Window, &width, &height);
@@ -155,6 +159,7 @@ Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color 
 	{
 		auto recreated = Recreate();
 		if (!recreated) return recreated;
+		if (!m_Swapchain) { m_NeedsRetry = true; return {}; }
 	}
 	auto flushed = m_Device.FlushTextures();
 	if (!flushed) return flushed;
@@ -163,7 +168,7 @@ Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color 
 	if (result != VK_SUCCESS) return GraphicsError("Frame wait", result);
 	std::uint32_t imageIndex = 0;
 	result = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain, UINT64_MAX, frame.m_Acquired, VK_NULL_HANDLE, &imageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR) return Recreate();
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) { m_NeedsRetry = true; return Recreate(); }
 	const bool suboptimal = result == VK_SUBOPTIMAL_KHR;
 	if (result != VK_SUCCESS && !suboptimal) return GraphicsError("Acquire swapchain image", result);
 	const auto bytes = list.m_Vertices.size() * sizeof(Vertex);
@@ -256,8 +261,13 @@ Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color 
 	present.pSwapchains = &m_Swapchain;
 	present.pImageIndices = &imageIndex;
 	result = vkQueuePresentKHR(m_Device.m_Queue, &present);
+	if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) ++m_PresentCount;
 	m_Frame = (m_Frame + 1) % m_Frames.size();
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || suboptimal) return Recreate();
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || suboptimal)
+	{
+		m_NeedsRetry = true;
+		return Recreate();
+	}
 	if (result != VK_SUCCESS) return GraphicsError("Present frame", result);
 	return {};
 }

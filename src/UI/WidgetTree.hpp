@@ -48,6 +48,7 @@ private:
 	void Route(PointerEvent& event, void (Widget::*handler)(PointerEvent&));
 	void AdvanceFocus(bool backwards);
 	int m_DispatchDepth = 0;
+	bool m_Flushing = false;
 	std::vector<std::function<void()>> m_Deferred;
 	Widget* m_PopupOwner = nullptr;
 	std::function<void(Canvas&)> m_PopupPaint;

@@ -25,6 +25,7 @@ struct Application::Impl
 	std::unique_ptr<Detail::RenderDevice> m_Device;
 	std::unique_ptr<Detail::TextEngine> m_Text;
 	std::thread::id m_Thread = std::this_thread::get_id();
+	bool m_Polling = false;
 };
 
 Application::Application(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl)) {}
@@ -115,6 +116,14 @@ Result<void> Application::Run()
 Result<bool> Application::Poll(bool wait)
 {
 	assert(m_Impl->m_Thread == std::this_thread::get_id());
+	if (m_Impl->m_Polling)
+		return std::unexpected(Error{ErrorCode::InvalidArgument, "Application::Poll cannot be called reentrantly."});
+	m_Impl->m_Polling = true;
+	struct PollScope
+	{
+		bool& m_Polling;
+		~PollScope() { m_Polling = false; }
+	} scope{m_Impl->m_Polling};
 	bool dirty = false;
 	bool animating = false;
 	for (const auto& window : m_Impl->m_Windows)
@@ -142,11 +151,22 @@ Result<bool> Application::Poll(bool wait)
 		dispatch(event);
 	while (SDL_PollEvent(&event))
 		dispatch(event);
-	std::erase_if(m_Impl->m_Windows, [](const auto& window) { return !window->IsOpen(); });
+	std::vector<Window*> closing;
+	for (const auto& window : m_Impl->m_Windows)
+	{
+		if (!window->IsOpen() && !window->m_Impl->m_CloseNotified)
+		{
+			window->m_Impl->m_CloseNotified = true;
+			closing.push_back(window.get());
+		}
+	}
+	for (auto* window : closing) window->m_Closed.Emit();
+	std::erase_if(m_Impl->m_Windows, [](const auto& window) { return !window->IsOpen() && window->m_Impl->m_CloseNotified; });
 	std::vector<Window*> windows;
 	for (const auto& window : m_Impl->m_Windows) windows.push_back(window.get());
 	for (auto* window : windows)
 	{
+		if (!window->IsOpen()) continue;
 		auto result = window->Update();
 		if (!result)
 			return std::unexpected(result.error());

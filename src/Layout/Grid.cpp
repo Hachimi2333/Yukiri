@@ -56,7 +56,7 @@ std::vector<float> Grid::Resolve(const std::vector<GridLength>& tracks, bool hor
 	std::vector<float> sizes(tracks.size());
 	for (std::size_t i = 0; i < tracks.size(); ++i)
 		if (tracks[i].m_Unit == GridUnit::Pixel) sizes[i] = tracks[i].m_Value;
-	for (const auto& child : GetChildren())
+	for (auto* child : Children())
 	{
 		if (!child->IsVisible()) continue;
 		const auto cell = GetCell(*child);
@@ -87,7 +87,7 @@ std::vector<float> Grid::Resolve(const std::vector<GridLength>& tracks, bool hor
 }
 Size Grid::OnMeasure(Size available)
 {
-	for (const auto& child : GetChildren()) child->Measure(available);
+	for (auto* child : Children()) child->Measure(available);
 	const auto columns = Resolve(m_Columns, true, available.m_Width, m_ColumnSpacing, false);
 	const auto rows = Resolve(m_Rows, false, available.m_Height, m_RowSpacing, false);
 	return {Sum(columns, 0, columns.size(), m_ColumnSpacing), Sum(rows, 0, rows.size(), m_RowSpacing)};
@@ -96,7 +96,7 @@ void Grid::OnArrange(Rect content)
 {
 	const auto columns = Resolve(m_Columns, true, content.m_Width, m_ColumnSpacing, true);
 	const auto rows = Resolve(m_Rows, false, content.m_Height, m_RowSpacing, true);
-	for (const auto& child : GetChildren())
+	for (auto* child : Children())
 	{
 		const auto cell = GetCell(*child);
 		float x = content.m_X;

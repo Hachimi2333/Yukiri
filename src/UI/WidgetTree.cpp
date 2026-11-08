@@ -24,7 +24,12 @@ bool Within(Widget* candidate, Widget* ancestor)
 }
 }
 
-WidgetTree::~WidgetTree() { m_Root.reset(); }
+WidgetTree::~WidgetTree()
+{
+	m_Focus = m_Capture = m_Hover = nullptr;
+	ClosePopup();
+	m_Root.reset();
+}
 void WidgetTree::SetRoot(std::unique_ptr<Widget> root)
 {
 	auto transfer = std::make_shared<std::unique_ptr<Widget>>(std::move(root));
@@ -37,6 +42,7 @@ void WidgetTree::SetRoot(std::unique_ptr<Widget> root)
 }
 void WidgetTree::Layout(Size size, Point origin)
 {
+	Dispatch dispatch(*this);
 	if (!m_Root || (!m_LayoutDirty && size.m_Width == m_LastSize.m_Width && size.m_Height == m_LastSize.m_Height &&
 		origin.m_X == m_LastOrigin.m_X && origin.m_Y == m_LastOrigin.m_Y)) return;
 	m_LastSize = size;
@@ -47,6 +53,7 @@ void WidgetTree::Layout(Size size, Point origin)
 }
 void WidgetTree::Paint(Canvas& canvas)
 {
+	Dispatch dispatch(*this);
 	if (m_Root) m_Root->Render(canvas);
 	if (m_PopupPaint)
 	{
@@ -59,10 +66,19 @@ void WidgetTree::Paint(Canvas& canvas)
 }
 void WidgetTree::Defer(std::function<void()> action)
 {
-	if (m_DispatchDepth) m_Deferred.push_back(std::move(action)); else action();
+	m_Deferred.push_back(std::move(action));
+	if (!m_DispatchDepth) Flush();
 }
 void WidgetTree::Flush()
 {
+	if (m_Flushing) return;
+	m_Flushing = true;
+	struct FlushScope
+	{
+		bool& m_Flushing;
+		~FlushScope() { m_Flushing = false; }
+	} scope{m_Flushing};
+	Dispatch dispatch(*this);
 	while (!m_Deferred.empty())
 	{
 		auto deferred = std::exchange(m_Deferred, {});
@@ -71,6 +87,7 @@ void WidgetTree::Flush()
 }
 void WidgetTree::SetFocus(Widget* widget)
 {
+	Dispatch dispatch(*this);
 	if (widget && (!widget->IsEnabled() || !widget->IsVisible() || !widget->IsFocusable())) return;
 	if (m_Focus == widget) return;
 	auto* previous = std::exchange(m_Focus, widget);
@@ -80,6 +97,7 @@ void WidgetTree::SetFocus(Widget* widget)
 }
 void WidgetTree::Forget(Widget* widget)
 {
+	Dispatch dispatch(*this);
 	if (Within(m_Focus, widget))
 	{
 		auto* previous = std::exchange(m_Focus, nullptr);

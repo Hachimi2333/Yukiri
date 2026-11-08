@@ -1,4 +1,5 @@
 #include "UI/WidgetTree.hpp"
+#include "Controls/PopupLayout.hpp"
 #include <Yukiri/Controls/Button.hpp>
 #include <Yukiri/Controls/RadioButton.hpp>
 #include <Yukiri/Controls/ComboBox.hpp>
@@ -68,7 +69,7 @@ TEST_CASE("Scroll offsets clamp and focused descendants become visible", "[contr
 	Yukiri::Detail::WidgetTree tree;
 	auto scroll = std::make_unique<Yukiri::ScrollView>();
 	auto* view = scroll.get();
-	auto content = std::make_unique<Yukiri::StackPanel>(Yukiri::Orientation::Vertical, 0);
+	auto content = std::make_unique<Yukiri::StackPanel>(Yukiri::Orientation::Vertical, 0.0f);
 	Yukiri::Button* last = nullptr;
 	for (int i = 0; i < 10; ++i) { last = &content->AddChild<Yukiri::Button>("Row"); last->SetHeight(30); }
 	view->SetContent(std::move(content));
@@ -110,4 +111,16 @@ TEST_CASE("Slider clamps values and rejects invalid ranges", "[controls]")
 	Yukiri::KeyEvent left{Yukiri::Key::Left};
 	slider.OnKeyDown(left);
 	REQUIRE(slider.GetValue() == Catch::Approx(9.8));
+}
+
+TEST_CASE("Popup placement stays inside the content viewport", "[controls]")
+{
+	const Yukiri::Rect viewport{0, 40, 330, 200};
+	const auto popup = Yukiri::Detail::PlacePopup({280, 210, 160, 34}, viewport, 20, 32);
+	REQUIRE(popup.m_VisibleRows < 7);
+	REQUIRE(popup.m_Bounds.m_X >= viewport.m_X);
+	REQUIRE(popup.m_Bounds.m_Y >= viewport.m_Y);
+	REQUIRE(popup.m_Bounds.Right() <= viewport.Right());
+	REQUIRE(popup.m_Bounds.Bottom() <= viewport.Bottom());
+	REQUIRE(Yukiri::Detail::PlacePopup({}, {}, 4, 32).m_VisibleRows == 0);
 }

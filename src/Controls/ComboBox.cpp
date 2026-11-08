@@ -2,6 +2,7 @@
 #include <Yukiri/Platform/Window.hpp>
 #include <Yukiri/Render/Canvas.hpp>
 #include "Text/Unicode.hpp"
+#include "PopupLayout.hpp"
 
 namespace Yukiri
 {
@@ -65,19 +66,20 @@ void ComboBox::Open()
 {
 	if (m_Items.empty()) return;
 	const auto bounds = GetBounds();
-	const auto windowSize = GetWindow() ? GetWindow()->GetSize() : Size{1920, 1080};
-	const float height = static_cast<float>(std::min<std::size_t>(7, m_Items.size())) * 32 + 8;
-	const float width = std::min(std::max(160.0f, bounds.m_Width), windowSize.m_Width);
-	m_PopupBounds = {std::clamp(bounds.m_X, 0.0f, std::max(0.0f, windowSize.m_Width - width)),
-		bounds.Bottom() + height + 4 <= windowSize.m_Height ? bounds.Bottom() + 4 : std::max(0.0f, bounds.m_Y - height - 4), width, height};
+	const auto viewport = GetWindow() ? GetWindow()->GetContentBounds() : Rect{0, 0, 1920, 1080};
+	m_RowHeight = std::max(32.0f, GetFontSize() * 1.5f + 10);
+	const auto placement = Detail::PlacePopup(bounds, viewport, static_cast<int>(m_Items.size()), m_RowHeight);
+	if (!placement.m_VisibleRows) return;
+	m_PopupBounds = placement.m_Bounds;
+	m_VisibleRows = placement.m_VisibleRows;
 	m_Highlight = std::max(0, m_Selected);
-	m_TopIndex = std::max(0, m_Highlight - 6);
+	m_TopIndex = std::max(0, m_Highlight - m_VisibleRows + 1);
 	ShowPopup([this](Canvas& canvas) { PaintPopup(canvas); }, [this](PointerEvent& event)
 	{
 		if (event.m_Button != PointerButton::Left) return false;
 		if (m_PopupBounds.Contains(event.m_Position))
 		{
-			const int row = static_cast<int>((event.m_Position.m_Y - m_PopupBounds.m_Y - 4) / 32) + m_TopIndex;
+			const int row = static_cast<int>((event.m_Position.m_Y - m_PopupBounds.m_Y - 4) / m_RowHeight) + m_TopIndex;
 			ClosePopup();
 			if (row >= 0 && row < static_cast<int>(m_Items.size())) { auto selected = SetSelectedIndex(row); (void)selected; }
 			return true;
@@ -101,7 +103,7 @@ void ComboBox::Open()
 		else if (event.m_Key == Key::End) m_Highlight = static_cast<int>(m_Items.size()) - 1;
 		else return false;
 		m_Highlight = std::clamp(m_Highlight, 0, static_cast<int>(m_Items.size()) - 1);
-		m_TopIndex = std::clamp(m_TopIndex, std::max(0, m_Highlight - 6), m_Highlight);
+		m_TopIndex = std::clamp(m_TopIndex, std::max(0, m_Highlight - m_VisibleRows + 1), m_Highlight);
 		InvalidatePaint();
 		return true;
 	});
@@ -112,10 +114,10 @@ void ComboBox::PaintPopup(Canvas& canvas)
 	canvas.FillRectangle(m_PopupBounds, theme.m_Surface, GetRadius());
 	canvas.StrokeRectangle(m_PopupBounds, theme.m_Border, 1, GetRadius());
 	canvas.PushClip(m_PopupBounds);
-	for (int i = m_TopIndex; i < std::min(m_TopIndex + 7, static_cast<int>(m_Items.size())); ++i)
+	for (int i = m_TopIndex; i < std::min(m_TopIndex + m_VisibleRows, static_cast<int>(m_Items.size())); ++i)
 	{
-		const float y = m_PopupBounds.m_Y + 4 + static_cast<float>(i - m_TopIndex) * 32;
-		if (i == m_Highlight) canvas.FillRectangle({m_PopupBounds.m_X + 4, y, m_PopupBounds.m_Width - 8, 32}, theme.m_Hover, 4);
+		const float y = m_PopupBounds.m_Y + 4 + static_cast<float>(i - m_TopIndex) * m_RowHeight;
+		if (i == m_Highlight) canvas.FillRectangle({m_PopupBounds.m_X + 4, y, m_PopupBounds.m_Width - 8, m_RowHeight}, theme.m_Hover, 4);
 		canvas.DrawText(m_Items[static_cast<std::size_t>(i)], {m_PopupBounds.m_X + 12, y + 5}, theme.m_Text, GetFontSize());
 	}
 	canvas.PopClip();

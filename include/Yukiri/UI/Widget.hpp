@@ -105,6 +105,7 @@ protected:
 	[[nodiscard]] Color InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) const noexcept;
 	[[nodiscard]] std::weak_ptr<int> ObserveLifetime() const noexcept;
 	[[nodiscard]] float GetHoverAmount() const noexcept;
+	[[nodiscard]] std::vector<Widget*> Children() const;
 	void ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(PointerEvent&)> pointer,
 		std::function<bool(KeyEvent&)> key);
 	void ClosePopup();

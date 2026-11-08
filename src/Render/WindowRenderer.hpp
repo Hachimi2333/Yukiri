@@ -12,6 +12,7 @@ public:
 	static Result<std::unique_ptr<WindowRenderer>> Create(RenderDevice& device, SDL_Window* window);
 	~WindowRenderer();
 	Result<void> Draw(const DrawList& list, Size logicalSize, Color background);
+	[[nodiscard]] bool NeedsRetry() const noexcept { return m_NeedsRetry; }
 
 private:
 	struct Frame
@@ -40,5 +41,7 @@ private:
 	std::vector<bool> m_Initialized;
 	std::array<Frame, 2> m_Frames;
 	std::size_t m_Frame = 0;
+	bool m_NeedsRetry = false;
+	std::uint64_t m_PresentCount = 0;
 };
 }

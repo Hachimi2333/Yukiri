@@ -2,6 +2,7 @@
 
 #include <Yukiri/Core/Error.hpp>
 #include <Yukiri/Core/Geometry.hpp>
+#include <Yukiri/Core/Signal.hpp>
 #include <Yukiri/Platform/Config.hpp>
 #include <Yukiri/Styling/Theme.hpp>
 
@@ -39,8 +40,10 @@ public:
 	[[nodiscard]] std::size_t HitTestText(std::string_view text, float x, float fontSize = 14) const;
 	[[nodiscard]] bool IsOpen() const noexcept;
 	[[nodiscard]] Size GetSize() const;
+	[[nodiscard]] Rect GetContentBounds() const;
 	[[nodiscard]] float GetScale() const;
 	[[nodiscard]] const WindowConfig& GetConfig() const noexcept;
+	Signal<> m_Closed;
 
 private:
 	friend class Application;

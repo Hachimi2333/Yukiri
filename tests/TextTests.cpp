@@ -61,11 +61,25 @@ TEST_CASE("Font fallback shaping and caret positions work without a window", "[t
 	REQUIRE(shaped.m_Width > 80);
 	REQUIRE(shaped.m_Height >= 16);
 	REQUIRE_FALSE(shaped.m_Glyphs.empty());
-	for (const auto& glyph : shaped.m_Glyphs) REQUIRE(glyph.m_Glyph != 0);
+	const auto latin = (*engine)->Shape("Yukiri AV ffi", 16);
+	for (const auto& glyph : latin.m_Glyphs) REQUIRE(glyph.m_Glyph != 0);
+	const auto cjk = (*engine)->Shape("中文", 16);
+	if (std::ranges::all_of(cjk.m_Glyphs, [](const auto& glyph) { return glyph.m_Glyph != 0; }))
+	{
+		for (const auto& glyph : shaped.m_Glyphs) REQUIRE(glyph.m_Glyph != 0);
+	}
+	else WARN("No system CJK font is installed; CJK fallback coverage requires that font fixture.");
 	const auto carets = (*engine)->Carets("AV ffi", 16);
 	REQUIRE(carets.front().second == Catch::Approx(0).margin(1));
 	REQUIRE(carets.back().second == Catch::Approx((*engine)->Measure("AV ffi", 16).m_Width));
 	for (std::size_t i = 1; i < carets.size(); ++i) REQUIRE(carets[i].second >= carets[i - 1].second);
+	const float baseline = (*engine)->Measure("Yukiri 中文", 16, 1).m_Width;
+	for (const float scale : {1.0f, 1.5f, 2.0f})
+	{
+		const auto measured = (*engine)->Measure("Yukiri 中文", 16, scale);
+		REQUIRE(measured.m_Width == Catch::Approx(baseline).margin(4));
+		REQUIRE((*engine)->Carets("Yukiri 中文", 16, scale).back().second == Catch::Approx(measured.m_Width));
+	}
 	REQUIRE_FALSE((*engine)->LoadFont("missing-font-file.ttf"));
 }
 

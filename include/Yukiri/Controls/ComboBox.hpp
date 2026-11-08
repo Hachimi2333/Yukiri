@@ -27,6 +27,8 @@ private:
 	int m_Selected = -1;
 	int m_Highlight = 0;
 	int m_TopIndex = 0;
+	int m_VisibleRows = 7;
+	float m_RowHeight = 32;
 	Rect m_PopupBounds;
 };
 }

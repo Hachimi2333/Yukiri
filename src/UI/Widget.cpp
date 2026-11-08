@@ -82,15 +82,15 @@ void Widget::SetVisible(bool visible)
 {
 	if (m_Visible == visible) return;
 	m_Visible = visible;
-	if (!visible && m_Tree) m_Tree->Forget(this);
 	InvalidateLayout();
+	if (!visible && m_Tree) m_Tree->Forget(this);
 }
 void Widget::SetEnabled(bool enabled)
 {
 	if (m_Enabled == enabled) return;
 	m_Enabled = enabled;
-	if (!enabled && m_Tree) m_Tree->Forget(this);
 	InvalidatePaint();
+	if (!enabled && m_Tree) m_Tree->Forget(this);
 }
 void Widget::SetFocusable(bool focusable) { m_Focusable = focusable; }
 void Widget::SetCursor(Cursor cursor) { m_Cursor = cursor; }
@@ -162,7 +162,7 @@ void Widget::Arrange(Rect slot)
 Size Widget::OnMeasure(Size available)
 {
 	Size desired;
-	for (auto& child : m_Children)
+	for (auto* child : Children())
 	{
 		child->Measure(available);
 		const auto size = child->GetDesiredSize();
@@ -171,7 +171,7 @@ Size Widget::OnMeasure(Size available)
 	}
 	return desired;
 }
-void Widget::OnArrange(Rect content) { for (auto& child : m_Children) child->Arrange(content); }
+void Widget::OnArrange(Rect content) { for (auto* child : Children()) child->Arrange(content); }
 
 void Widget::Render(Canvas& canvas)
 {
@@ -182,7 +182,7 @@ void Widget::Render(Canvas& canvas)
 	OnPaint(canvas);
 	const auto childClip = GetChildrenClip();
 	canvas.PushClip({childClip.m_X - m_Bounds.m_X, childClip.m_Y - m_Bounds.m_Y, childClip.m_Width, childClip.m_Height});
-	for (auto& child : m_Children) child->Render(canvas);
+	for (auto* child : Children()) child->Render(canvas);
 	canvas.PopClip();
 	OnPaintOverlay(canvas);
 	canvas.Restore();
@@ -278,4 +278,11 @@ void Widget::ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(Po
 }
 void Widget::ClosePopup() { if (m_Tree && m_Tree->HasPopup(this)) m_Tree->ClosePopup(); }
 bool Widget::IsPopupOpen() const noexcept { return m_Tree && m_Tree->HasPopup(this); }
+std::vector<Widget*> Widget::Children() const
+{
+	std::vector<Widget*> snapshot;
+	snapshot.reserve(m_Children.size());
+	for (const auto& child : m_Children) snapshot.push_back(child.get());
+	return snapshot;
+}
 }
