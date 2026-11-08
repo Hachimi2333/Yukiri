@@ -7,18 +7,19 @@
 int main(int argc, char** argv)
 {
 	bool smoke = false;
-	bool custom = false;
+	auto decoration = Yukiri::WindowDecoration::Custom;
 	bool idle = false;
 	for (int i = 1; i < argc; ++i)
 	{
 		if (std::string_view(argv[i]) == "--smoke") smoke = true;
-		if (std::string_view(argv[i]) == "--custom") custom = true;
+		if (std::string_view(argv[i]) == "--custom") decoration = Yukiri::WindowDecoration::Custom;
+		if (std::string_view(argv[i]) == "--native") decoration = Yukiri::WindowDecoration::Native;
 		if (std::string_view(argv[i]) == "--idle-smoke") idle = true;
 	}
 	auto application = Yukiri::Application::Create({"Yukiri Demo", true});
 	if (!application) { std::cerr << application.error().m_Message << '\n'; return 1; }
 	auto& app = **application;
-	auto mainWindow = YukiriDemo::OpenGallery(app, custom ? Yukiri::WindowDecoration::Custom : Yukiri::WindowDecoration::Native,
+	auto mainWindow = YukiriDemo::OpenGallery(app, decoration,
 		Yukiri::ThemeMode::System, !smoke && !idle);
 	if (!mainWindow) { std::cerr << mainWindow.error().m_Message << '\n'; return 2; }
 	if (idle)
@@ -35,7 +36,9 @@ int main(int argc, char** argv)
 	}
 	if (smoke)
 	{
-		auto second = YukiriDemo::OpenGallery(app, Yukiri::WindowDecoration::Custom, Yukiri::ThemeMode::Dark, false);
+		const auto otherDecoration = decoration == Yukiri::WindowDecoration::Custom ?
+			Yukiri::WindowDecoration::Native : Yukiri::WindowDecoration::Custom;
+		auto second = YukiriDemo::OpenGallery(app, otherDecoration, Yukiri::ThemeMode::Dark, false);
 		if (!second) { std::cerr << second.error().m_Message << '\n'; return 3; }
 		for (int frame = 0; frame < 70; ++frame)
 		{

@@ -27,7 +27,7 @@ MSVC presets 设置 VSLANG；另窄范围修复中文 showIncludes 的 CMake 编
 ./tools/VerifyPackage.ps1 -Preset msvc-debug -Source
 ```
 
-Demo 默认原生标题栏，主题下拉框旁的“深 / 浅”按钮一键切换当前实际主题；下拉框保留跟随系统。各窗口独立设置，新窗口继承创建来源的模式。`--custom` 创建自绘主窗口，`--smoke` 运行自动 GPU 检查，`--idle-smoke` 验证空闲调度。设置 `YUKIRI_TRACE_FRAMES=1` 可在退出时打印窗口提交帧数。GPU 脚本检查超时、退出码与验证层日志，不加入默认 CTest。
+Demo 默认自绘标题栏，主题下拉框旁的“深 / 浅”按钮一键切换当前实际主题；下拉框保留跟随系统。各窗口独立设置，新窗口继承创建来源的模式。`--native` 创建原生主窗口，`--custom` 保留为显式自绘选项，`--smoke` 运行自动 GPU 检查，`--idle-smoke` 验证空闲调度。设置 `YUKIRI_TRACE_FRAMES=1` 可在退出时打印窗口提交帧数。GPU 脚本检查超时、退出码与验证层日志，不加入默认 CTest。
 
 ## 源码集成
 
@@ -74,4 +74,4 @@ Remove-Item Env:YUKIRI_FRAME_STATS
 
 `--idle-smoke` 通过外部非阻塞 Poll 采样约 5.4 秒；常规 Run 在完全空闲时直接等待事件。`Poll(false)` 不保证每次都完成呈现，消费方需持续驱动循环。
 
-MotionSettings 改变了公开类型布局，现有应用应使用匹配工具链重新编译并重新链接。
+MotionSettings 与焦点区域扩展改变了公开类型布局 / 虚函数表，现有应用应使用匹配工具链重新编译并重新链接。

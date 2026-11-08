@@ -44,7 +44,7 @@ try
 		if (!(Test-Path -LiteralPath $installed)) { throw 'Install the package before verifying it.' }
 		$relocated = Join-Path $projectRoot "out/relocated/$Preset-$([Guid]::NewGuid().ToString('N'))"
 		Copy-Item -LiteralPath $installed -Destination $relocated -Recurse
-		$arguments += @("-DCMAKE_PREFIX_PATH=$relocated", '-DCMAKE_DISABLE_FIND_PACKAGE_Vulkan=TRUE')
+		$arguments += @("-DCMAKE_PREFIX_PATH=$relocated", "-DYukiri_DIR=$relocated/lib/cmake/Yukiri", '-DCMAKE_DISABLE_FIND_PACKAGE_Vulkan=TRUE')
 		$env:VULKAN_SDK = ''
 	}
 	& cmake @arguments

@@ -22,7 +22,7 @@ Label& Heading(Widget& parent, std::string text, float size)
 Result<Window*> OpenGallery(Application& application, WindowDecoration decoration, ThemeMode theme, bool visible)
 {
 	WindowConfig config;
-	config.m_Title = decoration == WindowDecoration::Native ? "Yukiri - Widget Gallery" : "Yukiri - Custom Title Bar";
+	config.m_Title = decoration == WindowDecoration::Custom ? "Yukiri - Widget Gallery" : "Yukiri - Native Title Bar";
 	config.m_Width = 1040;
 	config.m_Height = 740;
 	config.m_Decoration = decoration;
@@ -52,8 +52,8 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	(void)buttonCell;
 	auto themeIndex = theme.SetSelectedIndex(static_cast<int>(window.GetConfig().m_Theme));
 	(void)themeIndex;
-	auto& newWindow = actions.AddChild<Button>("New native window / 新窗口");
-	auto& customWindow = actions.AddChild<Button>("Custom title bar / 自绘标题栏");
+	auto& newWindow = actions.AddChild<Button>("New window / 新窗口");
+	auto& nativeWindow = actions.AddChild<Button>("Native title bar / 原生标题栏");
 	auto& reset = actions.AddChild<Button>("Reset controls / 重置");
 	m_Tabs = &root->AddChild<TabView>();
 	auto controls = std::make_unique<ResponsivePanel>(340.0f, 2, 16.0f);
@@ -154,12 +154,12 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	Keep(m_Tabs->m_SelectionChanged.Connect([this](std::size_t) { SetOffset({0, 0}); }));
 	Keep(newWindow.m_Clicked.Connect([this]
 	{
-		auto opened = OpenGallery(m_Application, WindowDecoration::Native, m_Window.GetConfig().m_Theme);
+		auto opened = OpenGallery(m_Application, WindowDecoration::Custom, m_Window.GetConfig().m_Theme);
 		if (!opened) m_Status->SetText(opened.error().m_Message);
 	}));
-	Keep(customWindow.m_Clicked.Connect([this]
+	Keep(nativeWindow.m_Clicked.Connect([this]
 	{
-		auto opened = OpenGallery(m_Application, WindowDecoration::Custom, m_Window.GetConfig().m_Theme);
+		auto opened = OpenGallery(m_Application, WindowDecoration::Native, m_Window.GetConfig().m_Theme);
 		if (!opened) m_Status->SetText(opened.error().m_Message);
 	}));
 	Keep(reset.m_Clicked.Connect([this]

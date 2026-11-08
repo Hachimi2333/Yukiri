@@ -23,7 +23,7 @@ struct WindowConfig
 	int m_MinWidth = 330;
 	int m_MinHeight = 240;
 	bool m_Visible = true;
-	WindowDecoration m_Decoration = WindowDecoration::Native;
+	WindowDecoration m_Decoration = WindowDecoration::Custom;
 	ThemeMode m_Theme = ThemeMode::System;
 };
 }

@@ -2,7 +2,7 @@
 
 命名空间为 Yukiri。核心类型为 Application、Window、Widget、Canvas 和 Theme；配置对象使用 ApplicationConfig、WindowConfig。
 
-WindowDecoration 提供 Native / Custom，默认为 Native，创建时确定。ThemeMode 提供 System / Light / Dark，默认跟随系统。
+WindowDecoration 提供 Native / Custom，默认为 Custom，创建时确定。ThemeMode 提供 System / Light / Dark，默认跟随系统。
 
 Application::Create 返回 expected<unique_ptr<Application>, Error>；CreateWindow 返回由 Application 拥有的 Window 观察指针，窗口关闭并完成下一次 Poll 后该指针失效；保存返回的 Connection 以监听 m_Closed，并在回调内清空外部观察指针。Run 驱动主循环，Poll 可用于外部循环。所有窗口 / UI API 在创建 Application 的线程调用。Poll 不可重入；失败返回 ErrorCode::InvalidArgument。
 
@@ -28,7 +28,7 @@ ScrollView 使用 SetContent，默认纵向滚动，可启用横向滚动；支�
 
 ## 窗口装饰
 
-WindowConfig::m_Decoration 在创建时选择 Native / Custom，默认 Native。自绘模式绘制标题与标准系统按钮，客户根控件在标题栏下排列。窗口支持 SetSize、Minimize、Maximize 和 Restore，可失败操作返回 expected。
+WindowConfig::m_Decoration 在创建时选择 Native / Custom，默认 Custom。自绘模式绘制标题与标准系统按钮，客户根控件在标题栏下排列。窗口支持 SetSize、Minimize、Maximize 和 Restore，可失败操作返回 expected。
 
 公共接口不用包含 Windows.h。与 Win32 混用时使用 CreateWindowW / DrawTextW 等显式名称；Yukiri 头文件会移除同名宏别名，避免覆盖 C++ 成员名称。
 

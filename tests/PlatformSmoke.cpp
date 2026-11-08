@@ -76,11 +76,13 @@ int main()
 	if (application.CreateWindow(invalid))
 		return 3;
 	Yukiri::WindowConfig config;
+	config.m_Title = "Yukiri smoke custom";
 	config.m_Visible = false;
 	config.m_Width = 480;
 	config.m_Height = 320;
 	auto first = application.CreateWindow(config);
-	config.m_Decoration = Yukiri::WindowDecoration::Custom;
+	config.m_Decoration = Yukiri::WindowDecoration::Native;
+	config.m_Title = "Yukiri smoke native";
 	auto second = application.CreateWindow(config);
 	if (!first || !second)
 	{
@@ -111,6 +113,7 @@ int main()
 	{
 		if (!(SDL_GetWindowFlags(nativeWindows[i]) & SDL_WINDOW_BORDERLESS)) continue;
 		auto handle = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(nativeWindows[i]), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+		if (std::string_view(SDL_GetWindowTitle(nativeWindows[i])) != "Yukiri smoke custom") return 21;
 		RECT client{};
 		GetClientRect(handle, &client);
 		const float scale = static_cast<float>(GetDpiForWindow(handle)) / 96;
@@ -121,6 +124,8 @@ int main()
 	}
 	SDL_free(nativeWindows);
 	if (!maxHitVerified || !overlappedVerified) return 9;
+	if ((*first)->GetConfig().m_Decoration != Yukiri::WindowDecoration::Custom || (*first)->GetContentBounds().m_Y <= 0 ||
+		(*second)->GetContentBounds().m_Y != 0) return 22;
 #endif
 	auto primed = application.Poll(false);
 	auto repainted = application.Poll(true);
@@ -150,7 +155,7 @@ int main()
 	auto** imeWindows = SDL_GetWindows(&windowCount);
 	SDL_Window* imeWindow = nullptr;
 	for (int i = 0; i < windowCount; ++i)
-		if (!(SDL_GetWindowFlags(imeWindows[i]) & SDL_WINDOW_BORDERLESS)) imeWindow = imeWindows[i];
+		if (std::string_view(SDL_GetWindowTitle(imeWindows[i])) == "Yukiri smoke custom") imeWindow = imeWindows[i];
 	SDL_free(imeWindows);
 	if (!imeWindow) return 12;
 	auto pumpUntil = [&](auto predicate)

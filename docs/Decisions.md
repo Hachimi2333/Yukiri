@@ -9,6 +9,9 @@
 - FreeType + HarfBuzz + libunibreak，先覆盖中英文；Catch2 + CTest。
 - 父级独占子级，Signal / Connection 管理通知，expected + Error / ErrorCode 报告失败。
 - 核心命名空间 Yukiri，配置后缀 Config，构建目标 Yukiri::Yukiri，程序 YukiriDemo。
-- 多窗口，原生与自绘标题栏均支持，框架与 Demo 默认原生；浅深主题默认跟随系统。
+- 多窗口，原生与自绘标题栏均支持，框架与 Demo 默认自绘（2026-11-08 调整）；浅深主题默认跟随系统。
 - 自绘标题栏包含常用 Windows 行为与 Windows 11 Snap Layouts。
 - 提供源码集成与可重定位安装包，第三方静态依赖由 CMake 目标传递。
+
+- 键盘焦点只由 Tab 导航开启，鼠标点击隐藏；选择类控件使用图标与文字紧凑区域，TabView 使用当前标题区域。
+- 输入法组合文本由框架显示下划线与组合选区，候选列表由系统提供；实际组合内容以输入法事件为准。

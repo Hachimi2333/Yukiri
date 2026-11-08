@@ -5,7 +5,7 @@
 namespace YukiriDemo
 {
 Yukiri::Result<Yukiri::Window*> OpenGallery(Yukiri::Application& application,
-	Yukiri::WindowDecoration decoration = Yukiri::WindowDecoration::Native,
+	Yukiri::WindowDecoration decoration = Yukiri::WindowDecoration::Custom,
 	Yukiri::ThemeMode theme = Yukiri::ThemeMode::System, bool visible = true);
 
 class Gallery : public Yukiri::ScrollView
