@@ -46,7 +46,9 @@ install(FILES third_party/harfbuzz/src/ms-use/COPYING DESTINATION "${licenseDire
 	RENAME HarfBuzz-Unicode.txt COMPONENT Development)
 install(FILES third_party/SDL/src/hidapi/LICENSE.txt third_party/SDL/src/hidapi/LICENSE-bsd.txt
 	DESTINATION "${licenseDirectory}/SDL-hidapi" COMPONENT Development)
-install(DIRECTORY docs/ DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/Yukiri" COMPONENT Documentation)
+install(FILES README.md README.zh-CN.md AGENTS.md FUTURE.md LICENSE
+	DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/Yukiri" COMPONENT Documentation)
+install(DIRECTORY docs/ DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/Yukiri/docs" COMPONENT Documentation)
 install(DIRECTORY assets/ DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/Yukiri/assets" COMPONENT Documentation)
 if(TARGET YukiriDemo)
 	install(TARGETS YukiriDemo RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT Demo)

@@ -16,6 +16,7 @@
 - Use actual tabs for indentation in project code and build scripts, with a display width of four. Use Allman braces for multiline C++ definitions; trivial accessors may be inline.
 - Types, functions, enum values, and constants use PascalCase. Members use `m_Name`; parameters and local variables use camelCase. Source files use PascalCase.hpp/.cpp.
 - Code comments and commit messages are English. User and developer documentation is primarily Chinese.
+- Keep README.md in English and README.zh-CN.md synchronized in Chinese. Describe implemented capabilities and actual validation separately; keep relative documentation links usable after installation.
 - Prefer standard C++23 facilities when they improve clarity; do not introduce features solely for novelty. Public headers must be self-contained.
 - Do not rewrite vendored source formatting. Third-party libraries are pinned Git submodules, built from source, and linked statically.
 

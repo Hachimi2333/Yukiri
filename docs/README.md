@@ -1,5 +1,7 @@
 # 开发文档
 
+项目介绍、环境要求与快速开始见 [English README](../README.md) / [中文 README](../README.zh-CN.md)。以下深入文档主要使用中文。
+
 | 文档 | 内容 |
 |---|---|
 | [Status](Status.md) | 当前交付进度与已知边界 |

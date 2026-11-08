@@ -44,7 +44,9 @@ target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 
 ## 安装包集成
 
-安装目录包含公开头文件、Yukiri 与所需静态依赖、CMake 元数据、许可证、文档和 Demo。整个目录可以移动；消费项目不需要 Vulkan SDK 或第三方头文件：
+安装目录包含公开头文件、Yukiri 与所需静态依赖、CMake 元数据、许可证、文档和 Demo。安装文档位于 share/doc/Yukiri，保留根目录双语 README、开发规范、规划、许可证，以及 docs / assets 子目录，文档之间的相对链接与源码仓库一致。
+
+整个目录可以移动；消费项目不需要 Vulkan SDK 或第三方头文件：
 
 ```cmake
 cmake_minimum_required(VERSION 3.28)

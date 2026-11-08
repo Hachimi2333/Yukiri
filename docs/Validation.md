@@ -85,3 +85,9 @@ GPU smoke 覆盖原生 / 自绘多窗口、圆角 / 边框 / 透明 / 裁剪 / �
 四套 MSVC / MinGW Debug / Release 均通过构建、公开头检查、46 / 46 CTest、平台 / Demo GPU smoke，以及 SDK 查找禁用后的重定位安装消费，检测到的 Vulkan 验证错误 / VUID 为零。两套 Debug 的 add_subdirectory 消费也通过。图标源文件作为文档资源安装，运行 Demo 仅依赖 EXE 内的图标资源。
 
 在现有 Windows 11 / 125% DPI 环境，少量 MSVC Release 实际窗口截图确认自绘浅深标题栏中的蓝色图标、透明边缘、图标与标题间距；其他 DPI / 跨屏范围仍按上文待验证项保留。本轮不重新声明未执行的 IME 或桌面操作验收。
+
+## 双语入口与离线文档（2026-11-08）
+
+默认英文 README 与中文版本的 10 个代码块逐一一致，源码树内 55 个本地 Markdown / 图标链接均有效。直接提取 README 的 C++ 最小应用和 find_package CMake 示例，在 MSVC / MinGW Debug 安装包上分别完成配置、编译和链接，并禁用 Vulkan SDK 查找；这是编译验证，不代表对该最小应用另做人工运行验收。
+
+四套配置更新安装后，另向全新前缀安装 Documentation 组件，各检查 55 个有效链接，确认根目录 README / 规范 / 规划 / 许可证及 docs / assets 相对目录完整。MSVC Release 安装后的 Demo 在其他工作目录以 --native --smoke 运行通过，检查 EXE 内图标资源及原生 / 自绘窗口，Vulkan 验证错误为零。文档和文档安装目录调整未改变运行库代码，因此沿用上节四套 46 / 46 CPU 与安装消费结果，不重复声明新测试覆盖。
