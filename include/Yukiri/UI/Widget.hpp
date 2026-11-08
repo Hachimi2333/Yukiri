@@ -6,6 +6,7 @@
 #include <Yukiri/UI/Input.hpp>
 
 #include <limits>
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -78,6 +79,7 @@ public:
 	void CapturePointer();
 	void ReleasePointer();
 	void Keep(Connection connection);
+	void BringIntoView();
 	[[nodiscard]] Size MeasureText(std::string_view text, float fontSize = 0) const;
 	[[nodiscard]] Point ToLocal(Point global) const noexcept;
 
@@ -96,13 +98,23 @@ protected:
 	virtual void OnArrange(Rect content);
 	virtual void OnPaint(Canvas& canvas);
 	virtual void OnPaintOverlay(Canvas& canvas);
+	virtual void OnBringIntoView(Rect& rectangle);
 	[[nodiscard]] Rect GetLocalBounds() const noexcept;
 	void PaintFocus(Canvas& canvas) const;
+	[[nodiscard]] Color InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) const noexcept;
+	[[nodiscard]] std::weak_ptr<int> ObserveLifetime() const noexcept;
+	[[nodiscard]] float GetHoverAmount() const noexcept;
+	void ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(PointerEvent&)> pointer,
+		std::function<bool(KeyEvent&)> key);
+	void ClosePopup();
+	[[nodiscard]] bool IsPopupOpen() const noexcept;
 
 private:
 	friend class Detail::WidgetTree;
 	friend class Grid;
 	void Attach(Detail::WidgetTree* tree);
+	void SetHovered(bool hovered);
+	bool Tick(std::chrono::steady_clock::time_point now);
 	std::vector<std::unique_ptr<Widget>> m_Children;
 	std::vector<Connection> m_Connections;
 	std::shared_ptr<int> m_Lifetime = std::make_shared<int>(0);
@@ -122,6 +134,9 @@ private:
 	bool m_Enabled = true;
 	bool m_Focusable = false;
 	bool m_Hovered = false;
+	float m_HoverAmount = 0;
+	float m_HoverStart = 0;
+	std::chrono::steady_clock::time_point m_HoverChanged{};
 	Cursor m_Cursor = Cursor::Arrow;
 	WidgetStyle m_Style;
 	std::optional<Theme> m_ThemeOverride;

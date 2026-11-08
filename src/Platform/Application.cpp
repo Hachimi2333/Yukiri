@@ -110,13 +110,20 @@ Result<bool> Application::Poll(bool wait)
 {
 	assert(m_Impl->m_Thread == std::this_thread::get_id());
 	bool dirty = false;
+	bool animating = false;
 	for (const auto& window : m_Impl->m_Windows)
+	{
 		dirty |= window->m_Impl->m_Dirty || window->m_Impl->m_Tree.m_Dirty || !window->IsOpen();
+		animating |= window->m_Impl->m_Tree.m_Animating;
+	}
 	SDL_Event event;
 	auto dispatch = [&](const SDL_Event& input)
 	{
 		if (input.type == SDL_EVENT_QUIT)
 			Quit();
+		if (input.type == SDL_EVENT_SYSTEM_THEME_CHANGED)
+			for (const auto& window : m_Impl->m_Windows)
+				if (window->GetConfig().m_Theme == ThemeMode::System) window->SetTheme(ThemeMode::System);
 		Window* target = nullptr;
 		auto* native = SDL_GetWindowFromEvent(&input);
 		for (const auto& window : m_Impl->m_Windows)
@@ -125,7 +132,7 @@ Result<bool> Application::Poll(bool wait)
 		}
 		if (target && target->IsOpen()) target->m_Impl->HandleEvent(input);
 	};
-	if (wait && !dirty && !m_Impl->m_Windows.empty() && SDL_WaitEventTimeout(&event, 500))
+	if (wait && !dirty && !m_Impl->m_Windows.empty() && SDL_WaitEventTimeout(&event, animating ? 16 : 500))
 		dispatch(event);
 	while (SDL_PollEvent(&event))
 		dispatch(event);

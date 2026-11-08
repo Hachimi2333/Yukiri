@@ -1,6 +1,7 @@
 #include <Yukiri/Platform/Window.hpp>
 #include "WindowState.hpp"
 #include <Yukiri/Render/Canvas.hpp>
+#include "Appearance.hpp"
 
 namespace Yukiri
 {
@@ -50,7 +51,9 @@ const Theme& Window::GetTheme() const noexcept { return m_Impl->m_Tree.m_Theme; 
 void Window::SetTheme(ThemeMode mode)
 {
 	m_Impl->m_Config.m_Theme = mode;
-	m_Impl->m_Tree.m_Theme = mode == ThemeMode::Dark ? Theme::Dark() : Theme::Light();
+	const bool dark = mode == ThemeMode::Dark || (mode == ThemeMode::System && Detail::IsSystemDark());
+	m_Impl->m_Tree.m_Theme = dark ? Theme::Dark() : Theme::Light();
+	Detail::ApplyAppearance(m_Impl->m_Native, dark);
 	m_Impl->m_Tree.m_LayoutDirty = true;
 	Invalidate();
 }
@@ -81,6 +84,7 @@ void Window::StopTextInput() { SDL_StopTextInput(m_Impl->m_Native); }
 
 Result<void> Window::Update()
 {
+	m_Impl->m_Tree.Tick();
 	const auto blink = SDL_GetTicks() / 500;
 	if (m_Impl->m_Tree.m_Focus && m_Impl->m_Tree.m_Focus->AcceptsTextInput() && blink != m_Impl->m_BlinkTick)
 		m_Impl->m_Tree.m_Dirty = true;

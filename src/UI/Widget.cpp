@@ -46,10 +46,15 @@ void Widget::RemoveChild(Widget& child)
 
 void Widget::ClearChildren()
 {
-	auto clear = [this, lifetime = std::weak_ptr<int>(m_Lifetime)]
+	std::vector<std::pair<Widget*, std::weak_ptr<int>>> children;
+	for (const auto& child : m_Children) children.emplace_back(child.get(), child->m_Lifetime);
+	auto clear = [this, children = std::move(children), lifetime = std::weak_ptr<int>(m_Lifetime)]
 	{
 		if (lifetime.expired()) return;
-		m_Children.clear();
+		std::erase_if(m_Children, [&](const auto& owned)
+		{
+			return std::ranges::any_of(children, [&](const auto& entry) { return !entry.second.expired() && entry.first == owned.get(); });
+		});
 		InvalidateLayout();
 	};
 	if (m_Tree) m_Tree->Defer(std::move(clear)); else clear();
@@ -218,6 +223,7 @@ void Widget::OnPaint(Canvas& canvas)
 	if (m_Style.m_Border) canvas.StrokeRectangle(GetLocalBounds(), *m_Style.m_Border, 1, GetRadius());
 }
 void Widget::OnPaintOverlay(Canvas&) {}
+void Widget::OnBringIntoView(Rect&) {}
 void Widget::OnPointerDown(PointerEvent&) {}
 void Widget::OnPointerUp(PointerEvent&) {}
 void Widget::OnPointerMove(PointerEvent&) {}
@@ -227,4 +233,44 @@ void Widget::OnTextInput(std::string_view) {}
 void Widget::OnTextEditing(std::string_view, int, int) {}
 void Widget::OnFocusChanged(bool) {}
 bool Widget::AcceptsTextInput() const noexcept { return false; }
+void Widget::BringIntoView()
+{
+	Rect rectangle = GetBounds();
+	for (auto* parent = m_Parent; parent; parent = parent->m_Parent) parent->OnBringIntoView(rectangle);
+}
+std::weak_ptr<int> Widget::ObserveLifetime() const noexcept { return m_Lifetime; }
+float Widget::GetHoverAmount() const noexcept { return m_HoverAmount; }
+void Widget::SetHovered(bool hovered)
+{
+	if (m_Hovered == hovered) return;
+	m_Hovered = hovered;
+	m_HoverStart = m_HoverAmount;
+	m_HoverChanged = std::chrono::steady_clock::now();
+	InvalidatePaint();
+}
+bool Widget::Tick(std::chrono::steady_clock::time_point now)
+{
+	const float target = m_Hovered && IsEnabled() ? 1.0f : 0.0f;
+	const float elapsed = std::chrono::duration<float>(now - m_HoverChanged).count();
+	const float fraction = std::clamp(elapsed / 0.12f, 0.0f, 1.0f);
+	const float next = m_HoverStart + (target - m_HoverStart) * fraction;
+	if (next != m_HoverAmount) { m_HoverAmount = next; InvalidatePaint(); }
+	bool active = fraction < 1 && m_HoverStart != target;
+	for (auto& child : m_Children) active = child->Tick(now) || active;
+	return active;
+}
+Color Widget::InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) const noexcept
+{
+	if (!IsEnabled()) return resting;
+	if (isPressed) return pressed;
+	const float t = m_HoverAmount;
+	return {resting.m_R + (hovered.m_R - resting.m_R) * t, resting.m_G + (hovered.m_G - resting.m_G) * t,
+		resting.m_B + (hovered.m_B - resting.m_B) * t, resting.m_A + (hovered.m_A - resting.m_A) * t};
+}
+void Widget::ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key)
+{
+	if (m_Tree) m_Tree->SetPopup(this, std::move(paint), std::move(pointer), std::move(key));
+}
+void Widget::ClosePopup() { if (m_Tree && m_Tree->HasPopup(this)) m_Tree->ClosePopup(); }
+bool Widget::IsPopupOpen() const noexcept { return m_Tree && m_Tree->HasPopup(this); }
 }

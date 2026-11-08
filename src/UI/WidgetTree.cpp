@@ -73,7 +73,7 @@ void WidgetTree::SetFocus(Widget* widget)
 	if (m_Focus == widget) return;
 	auto* previous = std::exchange(m_Focus, widget);
 	if (previous) previous->OnFocusChanged(false);
-	if (m_Focus) m_Focus->OnFocusChanged(true);
+	if (m_Focus) { m_Focus->OnFocusChanged(true); if (m_Focus) m_Focus->BringIntoView(); }
 	m_Dirty = true;
 }
 void WidgetTree::Forget(Widget* widget)
@@ -89,7 +89,7 @@ void WidgetTree::Forget(Widget* widget)
 		m_Capture = nullptr;
 		if (m_PointerCapture) m_PointerCapture(false);
 	}
-	if (Within(m_Hover, widget)) { m_Hover->m_Hovered = false; m_Hover = nullptr; }
+	if (Within(m_Hover, widget)) { m_Hover->SetHovered(false); m_Hover = nullptr; }
 	if (Within(m_PopupOwner, widget)) ClosePopup();
 	m_Dirty = true;
 }
@@ -120,9 +120,9 @@ void WidgetTree::PointerMove(PointerEvent event)
 	auto* hover = m_Root ? m_Root->HitTest(event.m_Position) : nullptr;
 	if (hover != m_Hover)
 	{
-		if (m_Hover) m_Hover->m_Hovered = false;
+		if (m_Hover) m_Hover->SetHovered(false);
 		m_Hover = hover;
-		if (m_Hover) m_Hover->m_Hovered = true;
+		if (m_Hover) m_Hover->SetHovered(true);
 		m_Dirty = true;
 	}
 	Route(event, &Widget::OnPointerMove);
@@ -181,5 +181,9 @@ void WidgetTree::LostFocus()
 	ClosePopup();
 	SetFocus(nullptr);
 	if (m_Capture) m_Capture->ReleasePointer();
+}
+void WidgetTree::Tick(std::chrono::steady_clock::time_point now)
+{
+	m_Animating = m_Root && m_Root->Tick(now);
 }
 }

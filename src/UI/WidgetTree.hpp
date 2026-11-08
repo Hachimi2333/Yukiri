@@ -26,6 +26,8 @@ public:
 		std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key);
 	void ClosePopup();
 	void LostFocus();
+	void Tick(std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now());
+	[[nodiscard]] bool HasPopup(const Widget* owner) const noexcept { return m_PopupOwner == owner; }
 	std::unique_ptr<Widget> m_Root;
 	Widget* m_Focus = nullptr;
 	Widget* m_Capture = nullptr;
@@ -34,6 +36,7 @@ public:
 	Theme m_Theme = Theme::Light();
 	bool m_Dirty = true;
 	bool m_LayoutDirty = true;
+	bool m_Animating = false;
 	std::function<void()> m_EndTextInput;
 	std::function<void(bool)> m_PointerCapture;
 	std::function<Size(std::string_view, float)> m_MeasureText;
