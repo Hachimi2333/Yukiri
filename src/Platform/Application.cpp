@@ -21,6 +21,7 @@ struct Application::Impl
 {
 	ApplicationConfig m_Config;
 	std::vector<std::unique_ptr<Window>> m_Windows;
+	std::unique_ptr<Detail::RenderDevice> m_Device;
 	std::thread::id m_Thread = std::this_thread::get_id();
 };
 
@@ -43,6 +44,7 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 Application::~Application()
 {
 	m_Impl->m_Windows.clear();
+	m_Impl->m_Device.reset();
 	SDL_Quit();
 	ApplicationActive = false;
 }
@@ -62,6 +64,15 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 		return std::unexpected(Error{ErrorCode::WindowCreation, SDL_GetError()});
 	SDL_SetWindowMinimumSize(impl->m_Native, config.m_MinWidth, config.m_MinHeight);
 	auto window = std::unique_ptr<Window>(new Window(std::move(impl)));
+	if (!m_Impl->m_Device)
+	{
+		auto device = Detail::RenderDevice::Create(window->m_Impl->m_Native, m_Impl->m_Config.m_EnableValidation);
+		if (!device) return std::unexpected(device.error());
+		m_Impl->m_Device = std::move(*device);
+	}
+	auto renderer = Detail::WindowRenderer::Create(*m_Impl->m_Device, window->m_Impl->m_Native);
+	if (!renderer) return std::unexpected(renderer.error());
+	window->m_Impl->m_Renderer = std::move(*renderer);
 	auto* observer = window.get();
 	m_Impl->m_Windows.push_back(std::move(window));
 	return observer;
@@ -120,5 +131,10 @@ void Application::Quit()
 {
 	for (const auto& window : m_Impl->m_Windows)
 		window->Close();
+}
+
+std::uint32_t Application::GetValidationErrorCount() const noexcept
+{
+	return m_Impl->m_Device ? m_Impl->m_Device->m_ValidationErrors : 0;
 }
 }

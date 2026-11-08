@@ -1,0 +1,66 @@
+#pragma once
+
+#include "VulkanUtility.hpp"
+#include <vk_mem_alloc.h>
+#include <SDL3/SDL.h>
+#include <functional>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+namespace Yukiri::Detail
+{
+struct Buffer
+{
+	VkBuffer m_Buffer = VK_NULL_HANDLE;
+	VmaAllocation m_Allocation = VK_NULL_HANDLE;
+	void* m_Mapped = nullptr;
+	VkDeviceSize m_Size = 0;
+};
+
+struct Texture
+{
+	VkImage m_Image = VK_NULL_HANDLE;
+	VmaAllocation m_Allocation = VK_NULL_HANDLE;
+	VkImageView m_View = VK_NULL_HANDLE;
+	VkDescriptorSet m_Set = VK_NULL_HANDLE;
+	std::uint32_t m_Width = 0;
+	std::uint32_t m_Height = 0;
+	std::vector<unsigned char> m_Pixels;
+	bool m_Dirty = true;
+	bool m_Initialized = false;
+};
+
+class RenderDevice final
+{
+public:
+	static Result<std::unique_ptr<RenderDevice>> Create(SDL_Window* probeWindow, bool validation);
+	~RenderDevice();
+	RenderDevice(const RenderDevice&) = delete;
+	RenderDevice& operator=(const RenderDevice&) = delete;
+	Result<Buffer> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
+	void DestroyBuffer(Buffer& buffer);
+	Result<std::uint32_t> CreateTexture(std::uint32_t width, std::uint32_t height);
+	Result<void> FlushTextures();
+	Result<void> Immediate(const std::function<void(VkCommandBuffer)>& record);
+
+	VkInstance m_Instance = VK_NULL_HANDLE;
+	VkPhysicalDevice m_Physical = VK_NULL_HANDLE;
+	VkDevice m_Device = VK_NULL_HANDLE;
+	VkQueue m_Queue = VK_NULL_HANDLE;
+	std::uint32_t m_QueueFamily = 0;
+	VmaAllocator m_Allocator = VK_NULL_HANDLE;
+	VkCommandPool m_UploadPool = VK_NULL_HANDLE;
+	VkDescriptorSetLayout m_SetLayout = VK_NULL_HANDLE;
+	VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+	VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+	VkSampler m_Sampler = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT m_Messenger = VK_NULL_HANDLE;
+	std::uint32_t m_ValidationErrors = 0;
+	std::vector<std::unique_ptr<Texture>> m_Textures;
+
+private:
+	RenderDevice() = default;
+	Result<void> Initialize(SDL_Window* probeWindow, bool validation);
+};
+}

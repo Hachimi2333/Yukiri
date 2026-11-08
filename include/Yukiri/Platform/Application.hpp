@@ -4,6 +4,7 @@
 #include <Yukiri/Platform/Config.hpp>
 
 #include <memory>
+#include <cstdint>
 
 namespace Yukiri
 {
@@ -20,6 +21,7 @@ public:
 	[[nodiscard]] Result<void> Run();
 	[[nodiscard]] Result<bool> Poll(bool wait = true);
 	void Quit();
+	[[nodiscard]] std::uint32_t GetValidationErrorCount() const noexcept;
 
 private:
 	struct Impl;

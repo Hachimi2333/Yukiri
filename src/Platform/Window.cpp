@@ -7,6 +7,7 @@ Window::Window(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl)) {}
 
 Window::~Window()
 {
+	m_Impl->m_Renderer.reset();
 	if (m_Impl->m_Native)
 		SDL_DestroyWindow(m_Impl->m_Native);
 }
@@ -34,6 +35,10 @@ float Window::GetScale() const { return SDL_GetWindowDisplayScale(m_Impl->m_Nati
 
 Result<void> Window::Update()
 {
+	if (!m_Impl->m_Dirty) return {};
+	Detail::DrawList list;
+	auto result = m_Impl->m_Renderer->Draw(list, GetSize(), Color::FromHex(0xF6F7FA));
+	if (!result) return result;
 	m_Impl->m_Dirty = false;
 	return {};
 }

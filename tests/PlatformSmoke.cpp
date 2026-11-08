@@ -48,5 +48,7 @@ int main()
 	auto finished = application.Poll(false);
 	if (!finished || *finished)
 		return 7;
+	if (application.GetValidationErrorCount() != 0)
+		return 8;
 	std::cout << "Application lifecycle and two-window smoke passed.\n";
 }
