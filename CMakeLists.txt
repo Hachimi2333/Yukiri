@@ -21,7 +21,7 @@ target_sources(Yukiri PRIVATE src/Render/Canvas.cpp src/UI/Widget.cpp src/UI/Wid
 	src/Layout/StackPanel.cpp src/Layout/Grid.cpp src/Styling/Theme.cpp src/Platform/WindowInput.cpp)
 target_sources(Yukiri PRIVATE src/Text/Unicode.cpp src/Text/TextEditor.cpp src/Text/TextEngine.cpp
 	src/Text/GlyphAtlas.cpp src/Platform/FontDiscovery.cpp src/Platform/WindowText.cpp src/Controls/TextBox.cpp)
-target_sources(Yukiri PRIVATE src/Platform/Appearance.cpp src/Platform/WindowChrome.cpp)
+target_sources(Yukiri PRIVATE src/Platform/Appearance.cpp src/Platform/WindowChrome.cpp src/Platform/WindowIcon.cpp)
 target_sources(Yukiri PRIVATE src/Controls/Label.cpp src/Controls/Button.cpp src/Controls/CheckBox.cpp
 	src/Controls/RadioButton.cpp src/Controls/ToggleSwitch.cpp src/Controls/Slider.cpp
 	src/Controls/ProgressBar.cpp src/Controls/ComboBox.cpp src/Controls/TabView.cpp src/Controls/ScrollView.cpp)
@@ -67,7 +67,13 @@ else()
 endif()
 
 if(YUKIRI_BUILD_DEMO)
-	add_executable(YukiriDemo WIN32 demo/Main.cpp demo/Gallery.cpp demo/ResponsivePanel.cpp)
+	add_executable(YukiriDemo WIN32 demo/Main.cpp demo/Gallery.cpp demo/ResponsivePanel.cpp demo/IconValidation.cpp)
+	if(WIN32)
+		enable_language(RC)
+		target_sources(YukiriDemo PRIVATE demo/Yukiri.rc)
+		target_include_directories(YukiriDemo PRIVATE assets)
+		set_property(SOURCE demo/Yukiri.rc APPEND PROPERTY OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/Yukiri.ico")
+	endif()
 	target_link_libraries(YukiriDemo PRIVATE Yukiri::Yukiri)
 	if(MSVC)
 		target_compile_options(YukiriDemo PRIVATE /utf-8)

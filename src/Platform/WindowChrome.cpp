@@ -1,4 +1,5 @@
 #include "WindowChrome.hpp"
+#include "WindowIcon.hpp"
 #include <Yukiri/Platform/Window.hpp>
 #include <Yukiri/Render/Canvas.hpp>
 #include <SDL3/SDL.h>
@@ -20,6 +21,8 @@ struct WindowChrome::Impl
 {
 	Window* m_Owner = nullptr;
 	HWND m_Handle = nullptr;
+	SDL_Window* m_Native = nullptr;
+	RenderDevice* m_Device = nullptr;
 	int m_Hover = 0;
 	int m_Pressed = 0;
 	float Scale() const { return static_cast<float>(GetDpiForWindow(m_Handle)) / 96.0f; }
@@ -160,10 +163,14 @@ struct WindowChrome::Impl
 };
 
 WindowChrome::WindowChrome(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl)) {}
-Result<std::unique_ptr<WindowChrome>> WindowChrome::Create(Window& owner, SDL_Window* native)
+Result<std::unique_ptr<WindowChrome>> WindowChrome::Create(Window& owner, SDL_Window* native, RenderDevice& device)
 {
 	auto impl = std::make_unique<Impl>();
 	impl->m_Owner = &owner;
+	impl->m_Native = native;
+	impl->m_Device = &device;
+	auto icon = GetWindowIcon(native, device);
+	if (!icon) return std::unexpected(icon.error());
 	impl->m_Handle = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(native), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
 	if (!impl->m_Handle || !SetWindowSubclass(impl->m_Handle, Impl::Procedure, 1, reinterpret_cast<DWORD_PTR>(impl.get())))
 		return std::unexpected(Error{ErrorCode::WindowCreation, "Installing the Windows custom frame failed."});
@@ -180,14 +187,17 @@ WindowChrome::~WindowChrome()
 {
 	if (m_Impl->m_Handle) RemoveWindowSubclass(m_Impl->m_Handle, Impl::Procedure, 1);
 }
-void WindowChrome::Paint(Canvas& canvas)
+Result<void> WindowChrome::Paint(Canvas& canvas)
 {
+	auto icon = GetWindowIcon(m_Impl->m_Native, *m_Impl->m_Device);
+	if (!icon) return std::unexpected(icon.error());
 	const auto size = m_Impl->m_Owner->GetSize();
 	const auto& theme = m_Impl->m_Owner->GetTheme();
 	canvas.FillRectangle({0, 0, size.m_Width, 40}, theme.m_Surface);
 	canvas.FillRectangle({0, 39, size.m_Width, 1}, theme.m_Border);
 	canvas.PushClip({12, 0, std::max(0.0f, size.m_Width - 162), 40});
-	canvas.DrawText(m_Impl->m_Owner->GetConfig().m_Title, {12, 10}, theme.m_Text, 13);
+	if (*icon) canvas.DrawImage({12, 12, 16, 16}, **icon);
+	canvas.DrawText(m_Impl->m_Owner->GetConfig().m_Title, {*icon ? 36.0f : 12.0f, 10}, theme.m_Text, 13);
 	canvas.PopClip();
 	const int buttons[] = {HTMINBUTTON, HTMAXBUTTON, HTCLOSE};
 	for (int i = 0; i < 3; ++i)
@@ -214,6 +224,7 @@ void WindowChrome::Paint(Canvas& canvas)
 			canvas.DrawLine({x + 28, 15}, {x + 18, 25}, color, 1);
 		}
 	}
+	return {};
 }
 }
 #else
@@ -222,10 +233,10 @@ namespace Yukiri::Detail
 struct WindowChrome::Impl {};
 WindowChrome::WindowChrome(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl)) {}
 WindowChrome::~WindowChrome() = default;
-Result<std::unique_ptr<WindowChrome>> WindowChrome::Create(Window&, SDL_Window*)
+Result<std::unique_ptr<WindowChrome>> WindowChrome::Create(Window&, SDL_Window*, RenderDevice&)
 {
 	return std::unexpected(Error{ErrorCode::WindowCreation, "Custom decorations are currently implemented on Windows only."});
 }
-void WindowChrome::Paint(Canvas&) {}
+Result<void> WindowChrome::Paint(Canvas&) { return {}; }
 }
 #endif

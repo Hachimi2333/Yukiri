@@ -29,6 +29,8 @@ MSVC presets 设置 VSLANG；另窄范围修复中文 showIncludes 的 CMake 编
 
 Demo 默认自绘标题栏，主题下拉框旁的“深 / 浅”按钮一键切换当前实际主题；下拉框保留跟随系统。各窗口独立设置，新窗口继承创建来源的模式。`--native` 创建原生主窗口，`--custom` 保留为显式自绘选项，`--smoke` 运行自动 GPU 检查，`--idle-smoke` 验证空闲调度。设置 `YUKIRI_TRACE_FRAMES=1` 可在退出时打印窗口提交帧数。GPU 脚本检查超时、退出码与验证层日志，不加入默认 CTest。
 
+Demo 的图标通过 RC 资源嵌入，MSVC 使用 Windows SDK 的 rc，MinGW 使用 windres。ICO 已提交到仓库，正常构建不需要 SVG 转换工具；运行 Demo 不需要旁置图标。原始 SVG 与尺寸说明见 assets，Yukiri 标识不链接到框架或消费项目。
+
 ## 源码集成
 
 初始化 Yukiri 子模块后，在消费项目中使用：

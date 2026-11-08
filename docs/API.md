@@ -30,6 +30,8 @@ ScrollView 使用 SetContent，默认纵向滚动，可启用横向滚动；支�
 
 WindowConfig::m_Decoration 在创建时选择 Native / Custom，默认 Custom。自绘模式绘制标题与标准系统按钮，客户根控件在标题栏下排列。窗口支持 SetSize、Minimize、Maximize 和 Restore，可失败操作返回 expected。
 
+Windows 宿主程序可在自己的 EXE 中链接图标资源，原生窗口及自绘标题栏使用该应用图标；没有图标时，自绘标题栏保持文字布局。Yukiri 标识仅链接到 Demo，不作为消费应用的默认图标。本次未增加公开图标设置 API。
+
 公共接口不用包含 Windows.h。与 Win32 混用时使用 CreateWindowW / DrawTextW 等显式名称；Yukiri 头文件会移除同名宏别名，避免覆盖 C++ 成员名称。
 
 ## 最小应用

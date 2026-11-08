@@ -11,12 +11,13 @@ class Window;
 class Canvas;
 namespace Detail
 {
+class RenderDevice;
 class WindowChrome
 {
 public:
-	static Result<std::unique_ptr<WindowChrome>> Create(Window& owner, SDL_Window* native);
+	static Result<std::unique_ptr<WindowChrome>> Create(Window& owner, SDL_Window* native, RenderDevice& device);
 	~WindowChrome();
-	void Paint(Canvas& canvas);
+	Result<void> Paint(Canvas& canvas);
 	[[nodiscard]] float GetHeight() const noexcept { return 40; }
 private:
 	struct Impl;

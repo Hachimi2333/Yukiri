@@ -2,6 +2,7 @@
 
 #include <Yukiri/Core/Geometry.hpp>
 #include <string_view>
+#include <cstdint>
 #include <vector>
 #ifdef DrawText
 #undef DrawText
@@ -9,7 +10,7 @@
 
 namespace Yukiri
 {
-namespace Detail { class DrawList; class TextEngine; }
+namespace Detail { class DrawList; class TextEngine; class WindowChrome; }
 class Window;
 
 class Canvas
@@ -29,6 +30,8 @@ public:
 private:
 	friend class Window;
 	friend class Widget;
+	friend class Detail::WindowChrome;
+	void DrawImage(Rect rectangle, std::uint32_t texture);
 	struct State { Point m_Offset; std::vector<Rect> m_Clips; };
 	Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text = nullptr, float scale = 1);
 	[[nodiscard]] Rect ToGlobal(Rect rectangle) const;

@@ -9,6 +9,8 @@
 
 namespace Yukiri::Detail
 {
+enum class DrawKind { Shape, Glyph, Image };
+
 struct Vertex
 {
 	Point m_Position;
@@ -34,7 +36,7 @@ class DrawList
 {
 public:
 	void Add(Rect rectangle, Color color, Rect clip, float radius = 0, float border = 0,
-		std::uint32_t texture = 0, Rect uv = {0, 0, 1, 1}, bool glyph = false, float rotation = 0)
+		std::uint32_t texture = 0, Rect uv = {0, 0, 1, 1}, DrawKind kind = DrawKind::Shape, float rotation = 0)
 	{
 		if (rectangle.Empty() || clip.Empty() || color.m_A <= 0)
 			return;
@@ -48,7 +50,7 @@ public:
 				rectangle.m_Y + rectangle.m_Height * 0.5f + localX * std::sin(rotation) + localY * std::cos(rotation)},
 				{corner.m_X * rectangle.m_Width, corner.m_Y * rectangle.m_Height},
 				{rectangle.m_Width, rectangle.m_Height}, color, radius, border,
-				glyph ? 1.0f : 0.0f, 0,
+				static_cast<float>(kind), 0,
 				{uv.m_X + corner.m_X * uv.m_Width, uv.m_Y + corner.m_Y * uv.m_Height}});
 		}
 		if (!m_Batches.empty())

@@ -6,6 +6,7 @@
 #include <functional>
 #include <cstdint>
 #include <memory>
+#include <map>
 #include <vector>
 
 namespace Yukiri::Detail
@@ -26,6 +27,7 @@ struct Texture
 	VkDescriptorSet m_Set = VK_NULL_HANDLE;
 	std::uint32_t m_Width = 0;
 	std::uint32_t m_Height = 0;
+	std::uint32_t m_BytesPerPixel = 1;
 	std::vector<unsigned char> m_Pixels;
 	bool m_Dirty = true;
 	bool m_Initialized = false;
@@ -42,7 +44,7 @@ public:
 	RenderDevice& operator=(const RenderDevice&) = delete;
 	Result<Buffer> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
 	void DestroyBuffer(Buffer& buffer);
-	Result<std::uint32_t> CreateTexture(std::uint32_t width, std::uint32_t height);
+	Result<std::uint32_t> CreateTexture(std::uint32_t width, std::uint32_t height, bool rgba = false);
 	Result<void> RecordTextureUploads(VkCommandBuffer command, Buffer& staging);
 
 	VkInstance m_Instance = VK_NULL_HANDLE;
@@ -58,6 +60,7 @@ public:
 	VkDebugUtilsMessengerEXT m_Messenger = VK_NULL_HANDLE;
 	std::uint32_t m_ValidationErrors = 0;
 	std::vector<std::unique_ptr<Texture>> m_Textures;
+	std::map<std::pair<std::uintptr_t, int>, std::uint32_t> m_ImageCache;
 
 private:
 	RenderDevice() = default;

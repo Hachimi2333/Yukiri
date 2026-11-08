@@ -1,4 +1,5 @@
 #include "Gallery.hpp"
+#include "IconValidation.hpp"
 #include <iostream>
 #include <string_view>
 #include <thread>
@@ -40,6 +41,7 @@ int main(int argc, char** argv)
 			Yukiri::WindowDecoration::Native : Yukiri::WindowDecoration::Custom;
 		auto second = YukiriDemo::OpenGallery(app, otherDecoration, Yukiri::ThemeMode::Dark, false);
 		if (!second) { std::cerr << second.error().m_Message << '\n'; return 3; }
+		if (!YukiriDemo::CheckWindowIcons()) { std::cerr << "Demo icon resources or window icons are missing.\n"; return 13; }
 		for (int frame = 0; frame < 70; ++frame)
 		{
 			auto* gallery = static_cast<YukiriDemo::Gallery*>((*mainWindow)->GetContent());
@@ -61,7 +63,7 @@ int main(int argc, char** argv)
 		app.Quit();
 		auto closed = app.Poll(false);
 		if (!closed || *closed || app.GetValidationErrorCount()) return 7;
-		std::cout << "Gallery GPU smoke passed: native/custom, resize, themes, text, tabs, and controls.\n";
+		std::cout << "Gallery GPU smoke passed: icon resources, native/custom, resize, themes, text, tabs, and controls.\n";
 		return 0;
 	}
 	auto run = app.Run();

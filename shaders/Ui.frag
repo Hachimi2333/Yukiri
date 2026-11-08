@@ -13,7 +13,14 @@ vec3 ToLinear(vec3 value)
 void main()
 {
 	float coverage;
-	if (parameters.z > 0.5)
+	if (parameters.z > 1.5)
+	{
+		vec4 pixel = texture(glyphAtlas, uv);
+		float alpha = color.a * pixel.a;
+		outputColor = vec4(ToLinear(color.rgb) * pixel.rgb * alpha, alpha);
+		return;
+	}
+	else if (parameters.z > 0.5)
 	{
 		coverage = texture(glyphAtlas, uv).r;
 	}

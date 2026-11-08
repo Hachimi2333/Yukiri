@@ -113,6 +113,7 @@ int main()
 	{
 		if (!(SDL_GetWindowFlags(nativeWindows[i]) & SDL_WINDOW_BORDERLESS)) continue;
 		auto handle = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(nativeWindows[i]), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+		if (GetClassLongPtrW(handle, GCLP_HICON)) return 23;
 		if (std::string_view(SDL_GetWindowTitle(nativeWindows[i])) != "Yukiri smoke custom") return 21;
 		RECT client{};
 		GetClientRect(handle, &client);

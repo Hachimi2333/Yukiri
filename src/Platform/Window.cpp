@@ -170,7 +170,11 @@ Result<void> Window::Update(bool paced)
 	m_Impl->m_Tree.Layout({content.m_Width, content.m_Height}, {content.m_X, content.m_Y});
 	Canvas canvas(list, size, m_Impl->m_Text, GetScale());
 	m_Impl->m_Tree.Paint(canvas);
-	if (m_Impl->m_Chrome) m_Impl->m_Chrome->Paint(canvas);
+	if (m_Impl->m_Chrome)
+	{
+		auto painted = m_Impl->m_Chrome->Paint(canvas);
+		if (!painted) return painted;
+	}
 	if (list.m_Error) return std::unexpected(*list.m_Error);
 	const auto beforeDraw = Clock::now();
 	auto result = m_Impl->m_Renderer->Draw(list, size, GetTheme().m_Background);

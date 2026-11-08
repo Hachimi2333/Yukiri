@@ -33,8 +33,14 @@ void Canvas::DrawLine(Point start, Point end, Color color, float width)
 	const auto distance = std::hypot(end.m_X - start.m_X, end.m_Y - start.m_Y);
 	const Rect rectangle{(start.m_X + end.m_X - distance - width) * 0.5f,
 		(start.m_Y + end.m_Y - width) * 0.5f, distance + width, width};
-	m_List.Add(ToGlobal(rectangle), color, m_State.m_Clips.back(), width * 0.5f, 0, 0, {0, 0, 1, 1}, false,
+	m_List.Add(ToGlobal(rectangle), color, m_State.m_Clips.back(), width * 0.5f, 0, 0, {0, 0, 1, 1}, Detail::DrawKind::Shape,
 		std::atan2(end.m_Y - start.m_Y, end.m_X - start.m_X));
+}
+
+void Canvas::DrawImage(Rect rectangle, std::uint32_t texture)
+{
+	m_List.Add(ToGlobal(rectangle), Color::FromHex(0xFFFFFF), m_State.m_Clips.back(), 0, 0, texture,
+		{0, 0, 1, 1}, Detail::DrawKind::Image);
 }
 
 void Canvas::Save() { m_Stack.push_back(m_State); }

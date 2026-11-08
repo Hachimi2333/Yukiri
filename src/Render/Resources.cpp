@@ -27,15 +27,16 @@ void RenderDevice::DestroyBuffer(Buffer& buffer)
 	buffer = {};
 }
 
-Result<std::uint32_t> RenderDevice::CreateTexture(std::uint32_t width, std::uint32_t height)
+Result<std::uint32_t> RenderDevice::CreateTexture(std::uint32_t width, std::uint32_t height, bool rgba)
 {
 	auto texture = std::make_unique<Texture>();
 	texture->m_Width = width;
 	texture->m_Height = height;
-	texture->m_Pixels.resize(static_cast<std::size_t>(width) * height);
+	texture->m_BytesPerPixel = rgba ? 4 : 1;
+	texture->m_Pixels.resize(static_cast<std::size_t>(width) * height * texture->m_BytesPerPixel);
 	auto imageInfo = VkInfo<VkImageCreateInfo>(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.format = VK_FORMAT_R8_UNORM;
+	imageInfo.format = rgba ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8_UNORM;
 	imageInfo.extent = {width, height, 1};
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
@@ -49,7 +50,7 @@ Result<std::uint32_t> RenderDevice::CreateTexture(std::uint32_t width, std::uint
 	auto viewInfo = VkInfo<VkImageViewCreateInfo>(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO);
 	viewInfo.image = texture->m_Image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = VK_FORMAT_R8_UNORM;
+	viewInfo.format = imageInfo.format;
 	viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 	result = vkCreateImageView(m_Device, &viewInfo, nullptr, &texture->m_View);
 	if (result != VK_SUCCESS)
@@ -103,7 +104,7 @@ Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer&
 		if (!texture->m_Dirty) continue;
 		if (!texture->m_Initialized) texture->m_DirtyBounds = {{0, 0}, {texture->m_Width, texture->m_Height}};
 		required = (required + 3) & ~VkDeviceSize(3);
-		required += static_cast<VkDeviceSize>(texture->m_DirtyBounds.extent.width) * texture->m_DirtyBounds.extent.height;
+		required += static_cast<VkDeviceSize>(texture->m_DirtyBounds.extent.width) * texture->m_DirtyBounds.extent.height * texture->m_BytesPerPixel;
 	}
 	if (!required) return {};
 	if (staging.m_Size < required)
@@ -118,10 +119,11 @@ Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer&
 	{
 		if (!texture->m_Dirty) continue;
 		const auto bounds = texture->m_DirtyBounds;
+		const auto rowBytes = static_cast<std::size_t>(bounds.extent.width) * texture->m_BytesPerPixel;
 		offset = (offset + 3) & ~VkDeviceSize(3);
 		for (std::uint32_t row = 0; row < bounds.extent.height; ++row)
-			std::memcpy(static_cast<unsigned char*>(staging.m_Mapped) + offset + row * bounds.extent.width,
-				texture->m_Pixels.data() + (static_cast<std::size_t>(bounds.offset.y) + row) * texture->m_Width + bounds.offset.x, bounds.extent.width);
+			std::memcpy(static_cast<unsigned char*>(staging.m_Mapped) + offset + row * rowBytes,
+				texture->m_Pixels.data() + ((static_cast<std::size_t>(bounds.offset.y) + row) * texture->m_Width + bounds.offset.x) * texture->m_BytesPerPixel, rowBytes);
 		ImageBarrier(command, texture->m_Image,
 			texture->m_Initialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -137,7 +139,7 @@ Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer&
 		ImageBarrier(command, texture->m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
-		offset += static_cast<VkDeviceSize>(bounds.extent.width) * bounds.extent.height;
+		offset += static_cast<VkDeviceSize>(bounds.extent.width) * bounds.extent.height * texture->m_BytesPerPixel;
 		texture->m_Initialized = true;
 		texture->m_Dirty = false;
 		texture->m_DirtyBounds = {};

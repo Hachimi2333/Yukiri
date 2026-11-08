@@ -77,7 +77,7 @@ Result<void> TextEngine::Draw(DrawList& list, std::string_view text, Point posit
 		if (!glyph) return std::unexpected(glyph.error());
 		list.Add({std::round((position.m_X + item.m_X) * scale + glyph->m_Left) / scale,
 			std::round((position.m_Y + shaped.m_Ascent + item.m_Y) * scale - glyph->m_Top) / scale,
-			glyph->m_Width / scale, glyph->m_Height / scale}, color, clip, 0, 0, glyph->m_Texture, glyph->m_Uv, true);
+			glyph->m_Width / scale, glyph->m_Height / scale}, color, clip, 0, 0, glyph->m_Texture, glyph->m_Uv, DrawKind::Glyph);
 	}
 	return {};
 }

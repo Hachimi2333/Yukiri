@@ -77,3 +77,11 @@ GPU smoke 覆盖原生 / 自绘多窗口、圆角 / 边框 / 透明 / 裁剪 / �
 ## 本机验证工具整理（2026-11-08）
 
 按项目要求移除 GitHub Actions 工作流与专用 SDK 安装脚本；此前只配置过工作流，未执行远端运行。保留所有本机构建、GPU smoke 和安装消费工具，清理规划中的远端 CI 验收项。本次仅修改工作流和文档，以引用检查及 git diff --check 验证；未因此重复编译。
+
+## Demo 图标与宿主资源（2026-11-08）
+
+原始 SVG 与桌面文件的 SHA-256 一致。ICO 含 16 / 20 / 24 / 32 / 40 / 48 / 64 / 128 / 256 像素透明 PNG，MSVC rc 和 MinGW windres 均成功链接。Demo smoke 实际检查九个图像资源及原生 / 自绘窗口类图标；无资源的 PlatformSmoke 另检查框架未添加品牌图标。内部 RGBA sRGB 路径与 R8 字形在同一帧正常上传，不引入队列空闲等待。
+
+四套 MSVC / MinGW Debug / Release 均通过构建、公开头检查、46 / 46 CTest、平台 / Demo GPU smoke，以及 SDK 查找禁用后的重定位安装消费，检测到的 Vulkan 验证错误 / VUID 为零。两套 Debug 的 add_subdirectory 消费也通过。图标源文件作为文档资源安装，运行 Demo 仅依赖 EXE 内的图标资源。
+
+在现有 Windows 11 / 125% DPI 环境，少量 MSVC Release 实际窗口截图确认自绘浅深标题栏中的蓝色图标、透明边缘、图标与标题间距；其他 DPI / 跨屏范围仍按上文待验证项保留。本轮不重新声明未执行的 IME 或桌面操作验收。
