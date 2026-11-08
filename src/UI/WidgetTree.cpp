@@ -204,6 +204,7 @@ void WidgetTree::LostFocus()
 }
 void WidgetTree::Tick(std::chrono::steady_clock::time_point now)
 {
+	Dispatch dispatch(*this);
 	m_Animating = m_Root && m_Root->Tick(now);
 }
 }

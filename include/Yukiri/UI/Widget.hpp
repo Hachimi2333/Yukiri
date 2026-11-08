@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Yukiri/Core/Geometry.hpp>
+#include <Yukiri/Core/Detail/Transition.hpp>
 #include <Yukiri/Core/Signal.hpp>
 #include <Yukiri/Styling/Theme.hpp>
 #include <Yukiri/UI/Input.hpp>
@@ -94,6 +95,10 @@ public:
 	[[nodiscard]] virtual bool AcceptsTextInput() const noexcept;
 
 protected:
+	virtual bool OnAnimate(std::chrono::nanoseconds delta);
+	void RequestAnimationFrame();
+	[[nodiscard]] bool CanAnimate() const noexcept;
+	[[nodiscard]] std::chrono::nanoseconds MotionDuration(std::chrono::milliseconds duration) const noexcept;
 	virtual Size OnMeasure(Size available);
 	virtual void OnArrange(Rect content);
 	virtual void OnPaint(Canvas& canvas);
@@ -102,7 +107,7 @@ protected:
 	[[nodiscard]] virtual Rect GetChildrenClip() const noexcept;
 	[[nodiscard]] Rect GetLocalBounds() const noexcept;
 	void PaintFocus(Canvas& canvas) const;
-	[[nodiscard]] Color InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) const noexcept;
+	[[nodiscard]] Color InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) noexcept;
 	[[nodiscard]] std::weak_ptr<int> ObserveLifetime() const noexcept;
 	[[nodiscard]] float GetHoverAmount() const noexcept;
 	[[nodiscard]] std::vector<Widget*> Children() const;
@@ -136,9 +141,11 @@ private:
 	bool m_Enabled = true;
 	bool m_Focusable = false;
 	bool m_Hovered = false;
-	float m_HoverAmount = 0;
-	float m_HoverStart = 0;
-	std::chrono::steady_clock::time_point m_HoverChanged{};
+	Detail::Transition m_HoverTransition;
+	Detail::Transition m_PressTransition;
+	bool m_AnimationRequested = false;
+	bool m_HasArranged = false;
+	std::chrono::steady_clock::time_point m_LastAnimationTick{};
 	Cursor m_Cursor = Cursor::Arrow;
 	WidgetStyle m_Style;
 	std::optional<Theme> m_ThemeOverride;

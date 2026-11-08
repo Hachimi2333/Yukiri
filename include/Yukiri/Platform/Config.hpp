@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Yukiri/Styling/MotionSettings.hpp>
 #include <string>
 
 namespace Yukiri
@@ -11,6 +12,7 @@ struct ApplicationConfig
 {
 	std::string m_Name = "Yukiri Application";
 	bool m_EnableValidation = true;
+	MotionSettings m_Motion;
 };
 
 struct WindowConfig

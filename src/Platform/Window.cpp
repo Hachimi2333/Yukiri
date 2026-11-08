@@ -65,6 +65,7 @@ void Window::SetTheme(ThemeMode mode)
 	m_Impl->m_Config.m_Theme = mode;
 	const bool dark = mode == ThemeMode::Dark || (mode == ThemeMode::System && Detail::IsSystemDark());
 	m_Impl->m_Tree.m_Theme = dark ? Theme::Dark() : Theme::Light();
+	m_Impl->m_Tree.m_Theme.m_Motion = m_Impl->m_Motion;
 	Detail::ApplyAppearance(m_Impl->m_Native, dark);
 	m_Impl->m_Tree.m_LayoutDirty = true;
 	Invalidate();

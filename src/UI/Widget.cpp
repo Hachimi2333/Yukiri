@@ -19,6 +19,7 @@ void Widget::Attach(Detail::WidgetTree* tree)
 {
 	if (m_Tree && m_Tree != tree) m_Tree->Forget(this);
 	m_Tree = tree;
+	m_HasArranged = false;
 	for (auto& child : m_Children) child->Attach(tree);
 }
 
@@ -82,6 +83,7 @@ void Widget::SetVisible(bool visible)
 {
 	if (m_Visible == visible) return;
 	m_Visible = visible;
+	if (!visible) { m_AnimationRequested = false; m_HasArranged = false; }
 	InvalidateLayout();
 	if (!visible && m_Tree) m_Tree->Forget(this);
 }
@@ -155,6 +157,7 @@ void Widget::Arrange(Rect slot)
 	};
 	m_Bounds = {slot.m_X + adjustment(m_Horizontal, slot.m_Width - width),
 		slot.m_Y + adjustment(m_Vertical, slot.m_Height - height), width, height};
+	m_HasArranged = true;
 	OnArrange({m_Bounds.m_X + m_Padding.m_Left, m_Bounds.m_Y + m_Padding.m_Top,
 		std::max(0.0f, width - m_Padding.Horizontal()), std::max(0.0f, height - m_Padding.Vertical())});
 }
@@ -244,33 +247,73 @@ void Widget::BringIntoView()
 	for (auto* parent = m_Parent; parent; parent = parent->m_Parent) parent->OnBringIntoView(rectangle);
 }
 std::weak_ptr<int> Widget::ObserveLifetime() const noexcept { return m_Lifetime; }
-float Widget::GetHoverAmount() const noexcept { return m_HoverAmount; }
+float Widget::GetHoverAmount() const noexcept { return m_HoverTransition.GetValue(); }
+bool Widget::CanAnimate() const noexcept
+{
+	if (!m_Tree || !m_HasArranged || !GetTheme().m_Motion.m_Enabled) return false;
+	for (auto* widget = this; widget; widget = widget->m_Parent)
+		if (!widget->m_Visible) return false;
+	return true;
+}
+std::chrono::nanoseconds Widget::MotionDuration(std::chrono::milliseconds duration) const noexcept
+{
+	return CanAnimate() ? std::max(duration, std::chrono::milliseconds::zero()) : std::chrono::milliseconds::zero();
+}
+void Widget::RequestAnimationFrame()
+{
+	if (!m_AnimationRequested) m_LastAnimationTick = std::chrono::steady_clock::now();
+	m_AnimationRequested = true;
+	if (m_Tree) m_Tree->m_Animating = true;
+	InvalidatePaint();
+}
+bool Widget::OnAnimate(std::chrono::nanoseconds) { return false; }
 void Widget::SetHovered(bool hovered)
 {
 	if (m_Hovered == hovered) return;
 	m_Hovered = hovered;
-	m_HoverStart = m_HoverAmount;
-	m_HoverChanged = std::chrono::steady_clock::now();
-	InvalidatePaint();
+	m_HoverTransition.Retarget(hovered && IsEnabled() ? 1.0f : 0.0f, MotionDuration(GetTheme().m_Motion.m_StateDuration));
+	RequestAnimationFrame();
 }
 bool Widget::Tick(std::chrono::steady_clock::time_point now)
 {
-	const float target = m_Hovered && IsEnabled() ? 1.0f : 0.0f;
-	const float elapsed = std::chrono::duration<float>(now - m_HoverChanged).count();
-	const float fraction = std::clamp(elapsed / 0.12f, 0.0f, 1.0f);
-	const float next = m_HoverStart + (target - m_HoverStart) * fraction;
-	if (next != m_HoverAmount) { m_HoverAmount = next; InvalidatePaint(); }
-	bool active = fraction < 1 && m_HoverStart != target;
-	for (auto& child : m_Children) active = child->Tick(now) || active;
+	if (!m_Visible)
+	{
+		m_AnimationRequested = m_HasArranged = false;
+		return false;
+	}
+	const auto delta = m_LastAnimationTick == std::chrono::steady_clock::time_point{} ? std::chrono::nanoseconds::zero() :
+		std::max(std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_LastAnimationTick), std::chrono::nanoseconds::zero());
+	m_LastAnimationTick = now;
+	const bool requested = m_AnimationRequested;
+	m_AnimationRequested = false;
+	const auto duration = MotionDuration(GetTheme().m_Motion.m_StateDuration);
+	m_HoverTransition.Retarget(m_Hovered && IsEnabled() ? 1.0f : 0.0f, duration);
+	if (!CanAnimate()) m_PressTransition.Snap(m_PressTransition.GetTarget());
+	const auto hover = m_HoverTransition.GetValue();
+	const auto press = m_PressTransition.GetValue();
+	bool active = m_HoverTransition.Advance(delta);
+	active = m_PressTransition.Advance(delta) || active;
+	if (hover != m_HoverTransition.GetValue() || press != m_PressTransition.GetValue()) InvalidatePaint();
+	active = OnAnimate(delta) || active || m_AnimationRequested;
+	m_AnimationRequested = active;
+	if (requested || active) InvalidatePaint();
+	for (auto* child : Children()) active = child->Tick(now) || active;
 	return active;
 }
-Color Widget::InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) const noexcept
+Color Widget::InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) noexcept
 {
+	const float target = isPressed && IsEnabled() ? 1.0f : 0.0f;
+	if (m_PressTransition.GetTarget() != target)
+	{
+		m_PressTransition.Retarget(target, MotionDuration(GetTheme().m_Motion.m_StateDuration));
+		RequestAnimationFrame();
+	}
 	if (!IsEnabled()) return resting;
-	if (isPressed) return pressed;
-	const float t = m_HoverAmount;
-	return {resting.m_R + (hovered.m_R - resting.m_R) * t, resting.m_G + (hovered.m_G - resting.m_G) * t,
-		resting.m_B + (hovered.m_B - resting.m_B) * t, resting.m_A + (hovered.m_A - resting.m_A) * t};
+	const float h = m_HoverTransition.GetValue();
+	const float p = m_PressTransition.GetValue();
+	auto blend = [h, p](float rest, float hover, float press) { const float base = rest + (hover - rest) * h; return base + (press - base) * p; };
+	return {blend(resting.m_R, hovered.m_R, pressed.m_R), blend(resting.m_G, hovered.m_G, pressed.m_G),
+		blend(resting.m_B, hovered.m_B, pressed.m_B), blend(resting.m_A, hovered.m_A, pressed.m_A)};
 }
 void Widget::ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key)
 {

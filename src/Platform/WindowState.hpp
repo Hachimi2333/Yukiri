@@ -13,6 +13,7 @@ struct Window::Impl
 {
 	SDL_Window* m_Native = nullptr;
 	WindowConfig m_Config;
+	MotionSettings m_Motion;
 	bool m_Open = true;
 	bool m_CloseNotified = false;
 	bool m_Dirty = true;

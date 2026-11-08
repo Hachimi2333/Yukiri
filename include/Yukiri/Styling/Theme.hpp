@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Yukiri/Core/Geometry.hpp>
+#include <Yukiri/Styling/MotionSettings.hpp>
 #include <optional>
 
 namespace Yukiri
@@ -22,6 +23,7 @@ struct Theme
 	float m_Radius = 6;
 	float m_ControlHeight = 34;
 	float m_Spacing = 8;
+	MotionSettings m_Motion;
 	[[nodiscard]] static Theme Light() noexcept;
 	[[nodiscard]] static Theme Dark() noexcept;
 };

@@ -69,6 +69,7 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 	auto impl = std::make_unique<Window::Impl>();
 	impl->m_Config = config;
 	impl->m_Text = m_Impl->m_Text.get();
+	impl->m_Motion = m_Impl->m_Config.m_Motion;
 	const auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
 		(config.m_Visible ? 0 : SDL_WINDOW_HIDDEN) |
 		(config.m_Decoration == WindowDecoration::Custom ? SDL_WINDOW_BORDERLESS : 0);
