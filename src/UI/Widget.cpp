@@ -199,6 +199,12 @@ Widget* Widget::HitTest(Point point)
 			if (auto* target = (*child)->HitTest(point)) return target;
 	return this;
 }
+void Widget::TranslateSubtree(Point delta)
+{
+	m_Bounds.m_X += delta.m_X;
+	m_Bounds.m_Y += delta.m_Y;
+	for (auto& child : m_Children) child->TranslateSubtree(delta);
+}
 void Widget::InvalidateLayout() { if (m_Tree) m_Tree->m_LayoutDirty = m_Tree->m_Dirty = true; }
 void Widget::InvalidatePaint() { if (m_Tree) m_Tree->m_Dirty = true; }
 void Widget::RequestFocus() { if (m_Tree) m_Tree->SetFocus(this); }
@@ -317,9 +323,13 @@ Color Widget::InteractiveColor(Color resting, Color hovered, Color pressed, bool
 }
 void Widget::ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key)
 {
+	ShowPopup([paint = std::move(paint)](Canvas& canvas, float) { paint(canvas); }, std::move(pointer), std::move(key));
+}
+void Widget::ShowPopup(std::function<void(Canvas&, float)> paint, std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key)
+{
 	if (m_Tree) m_Tree->SetPopup(this, std::move(paint), std::move(pointer), std::move(key));
 }
-void Widget::ClosePopup() { if (m_Tree && m_Tree->HasPopup(this)) m_Tree->ClosePopup(); }
+void Widget::ClosePopup(bool immediate) { if (m_Tree && m_Tree->OwnsPopup(this)) m_Tree->ClosePopup(immediate); }
 bool Widget::IsPopupOpen() const noexcept { return m_Tree && m_Tree->HasPopup(this); }
 std::vector<Widget*> Widget::Children() const
 {

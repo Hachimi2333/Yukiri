@@ -17,6 +17,7 @@ public:
 	void OnKeyDown(KeyEvent& event) override;
 	Signal<std::size_t> m_SelectionChanged;
 protected:
+	bool OnAnimate(std::chrono::nanoseconds delta) override;
 	Size OnMeasure(Size available) override;
 	void OnArrange(Rect content) override;
 	void OnPaint(Canvas& canvas) override;
@@ -24,5 +25,8 @@ private:
 	[[nodiscard]] std::vector<Rect> Headers() const;
 	std::vector<std::string> m_Titles;
 	std::size_t m_Selected = 0;
+	Detail::Transition m_IndicatorX;
+	Detail::Transition m_IndicatorWidth;
+	std::vector<Detail::Transition> m_TabWeights;
 };
 }

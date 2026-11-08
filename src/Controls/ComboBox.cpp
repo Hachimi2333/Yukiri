@@ -3,13 +3,15 @@
 #include <Yukiri/Render/Canvas.hpp>
 #include "Text/Unicode.hpp"
 #include "PopupLayout.hpp"
+#include <numbers>
+#include <cmath>
 
 namespace Yukiri
 {
 ComboBox::ComboBox(std::vector<std::string> items) { SetFocusable(true); SetCursor(Cursor::Hand); SetItems(std::move(items)); }
 void ComboBox::SetItems(std::vector<std::string> items)
 {
-	ClosePopup();
+	ClosePopup(true);
 	for (auto& item : items) item = Detail::SanitizeUtf8(item, true);
 	m_Items = std::move(items);
 	m_Selected = m_Items.empty() ? -1 : std::clamp(m_Selected, 0, static_cast<int>(m_Items.size()) - 1);
@@ -44,8 +46,11 @@ void ComboBox::OnPaint(Canvas& canvas)
 	canvas.PopClip();
 	const float x = size.m_Width - 18;
 	const float y = size.m_Height * 0.5f;
-	canvas.DrawLine({x - 4, y - 2}, {x, y + 2}, GetForeground(), 1.5f);
-	canvas.DrawLine({x, y + 2}, {x + 4, y - 2}, GetForeground(), 1.5f);
+	const float angle = std::numbers::pi_v<float> * m_Arrow.GetValue();
+	auto rotate = [x, y, angle](Point point) { return Point{x + point.m_X * std::cos(angle) - point.m_Y * std::sin(angle),
+		y + point.m_X * std::sin(angle) + point.m_Y * std::cos(angle)}; };
+	canvas.DrawLine(rotate({-4, -2}), rotate({0, 2}), GetForeground(), 1.5f);
+	canvas.DrawLine(rotate({0, 2}), rotate({4, -2}), GetForeground(), 1.5f);
 	PaintFocus(canvas);
 }
 void ComboBox::OnPointerDown(PointerEvent& event)
@@ -62,6 +67,19 @@ void ComboBox::OnKeyDown(KeyEvent& event)
 		Open();
 	}
 }
+bool ComboBox::OnAnimate(std::chrono::nanoseconds delta)
+{
+	m_Arrow.Retarget(IsPopupOpen() ? 1.0f : 0.0f, MotionDuration(GetTheme().m_Motion.m_PopupDuration));
+	m_HighlightVisual.Retarget(static_cast<float>(m_Highlight - m_TopIndex), MotionDuration(GetTheme().m_Motion.m_StateDuration));
+	bool active = m_Arrow.Advance(delta);
+	active = m_HighlightVisual.Advance(delta) || active;
+	return active;
+}
+Rect ComboBox::VisiblePopup() const
+{
+	const float height = m_PopupBounds.m_Height * m_VisualProgress;
+	return {m_PopupBounds.m_X, m_PopupUp ? m_PopupBounds.Bottom() - height : m_PopupBounds.m_Y, m_PopupBounds.m_Width, height};
+}
 void ComboBox::Open()
 {
 	if (m_Items.empty()) return;
@@ -74,17 +92,44 @@ void ComboBox::Open()
 	m_VisibleRows = placement.m_VisibleRows;
 	m_Highlight = std::max(0, m_Selected);
 	m_TopIndex = std::max(0, m_Highlight - m_VisibleRows + 1);
-	ShowPopup([this](Canvas& canvas) { PaintPopup(canvas); }, [this](PointerEvent& event)
+	m_HighlightVisual.Snap(static_cast<float>(m_Highlight - m_TopIndex));
+	m_PopupUp = m_PopupBounds.Bottom() <= bounds.m_Y;
+	m_VisualProgress = MotionDuration(GetTheme().m_Motion.m_PopupDuration).count() ? 0.0f : 1.0f;
+	m_WheelRemainder = 0;
+	RequestAnimationFrame();
+	ShowPopup([this](Canvas& canvas, float progress) { PaintPopup(canvas, progress); }, [this](PointerEvent& event)
 	{
-		if (event.m_Button != PointerButton::Left) return false;
-		if (m_PopupBounds.Contains(event.m_Position))
+		if (VisiblePopup().Contains(event.m_Position))
 		{
-			const int row = static_cast<int>((event.m_Position.m_Y - m_PopupBounds.m_Y - 4) / m_RowHeight) + m_TopIndex;
-			ClosePopup();
-			if (row >= 0 && row < static_cast<int>(m_Items.size())) { auto selected = SetSelectedIndex(row); (void)selected; }
-			return true;
+			if (event.m_WheelY != 0)
+			{
+				m_WheelRemainder -= event.m_WheelY;
+				const int rows = static_cast<int>(m_WheelRemainder);
+				m_WheelRemainder -= static_cast<float>(rows);
+				m_TopIndex = std::clamp(m_TopIndex + rows, 0, std::max(0, static_cast<int>(m_Items.size()) - m_VisibleRows));
+				m_Highlight = std::clamp(m_Highlight, m_TopIndex, m_TopIndex + m_VisibleRows - 1);
+				m_HighlightVisual.Snap(static_cast<float>(m_Highlight - m_TopIndex));
+				InvalidatePaint();
+				return true;
+			}
+			const float relative = event.m_Position.m_Y - m_PopupBounds.m_Y - 4;
+			const int row = static_cast<int>(std::floor(relative / m_RowHeight)) + m_TopIndex;
+			if (relative < 0 || row >= std::min(m_TopIndex + m_VisibleRows, static_cast<int>(m_Items.size()))) return true;
+			if (event.m_Button == PointerButton::None)
+			{
+				if (m_Highlight != row) { m_Highlight = row; RequestAnimationFrame(); }
+				return true;
+			}
+			if (event.m_Button == PointerButton::Left)
+			{
+				ClosePopup();
+				auto selected = SetSelectedIndex(row);
+				(void)selected;
+				return true;
+			}
+			return false;
 		}
-		if (GetBounds().Contains(event.m_Position)) { ClosePopup(); return true; }
+		if (event.m_Button == PointerButton::Left && GetBounds().Contains(event.m_Position)) { ClosePopup(); return true; }
 		return false;
 	}, [this](KeyEvent& event)
 	{
@@ -104,21 +149,24 @@ void ComboBox::Open()
 		else return false;
 		m_Highlight = std::clamp(m_Highlight, 0, static_cast<int>(m_Items.size()) - 1);
 		m_TopIndex = std::clamp(m_TopIndex, std::max(0, m_Highlight - m_VisibleRows + 1), m_Highlight);
+		RequestAnimationFrame();
 		InvalidatePaint();
 		return true;
 	});
 }
-void ComboBox::PaintPopup(Canvas& canvas)
+void ComboBox::PaintPopup(Canvas& canvas, float progress)
 {
+	m_VisualProgress = progress;
 	const auto& theme = GetTheme();
-	canvas.FillRectangle(m_PopupBounds, theme.m_Surface, GetRadius());
-	canvas.StrokeRectangle(m_PopupBounds, theme.m_Border, 1, GetRadius());
-	canvas.PushClip(m_PopupBounds);
+	canvas.PushClip(VisiblePopup());
+	canvas.FillRectangle(m_PopupBounds, theme.m_Surface.WithAlpha(theme.m_Surface.m_A * progress), GetRadius());
+	canvas.StrokeRectangle(m_PopupBounds, theme.m_Border.WithAlpha(theme.m_Border.m_A * progress), 1, GetRadius());
+	canvas.FillRectangle({m_PopupBounds.m_X + 4, m_PopupBounds.m_Y + 4 + m_HighlightVisual.GetValue() * m_RowHeight,
+		m_PopupBounds.m_Width - 8, m_RowHeight}, theme.m_Hover.WithAlpha(progress), 4);
 	for (int i = m_TopIndex; i < std::min(m_TopIndex + m_VisibleRows, static_cast<int>(m_Items.size())); ++i)
 	{
 		const float y = m_PopupBounds.m_Y + 4 + static_cast<float>(i - m_TopIndex) * m_RowHeight;
-		if (i == m_Highlight) canvas.FillRectangle({m_PopupBounds.m_X + 4, y, m_PopupBounds.m_Width - 8, m_RowHeight}, theme.m_Hover, 4);
-		canvas.DrawText(m_Items[static_cast<std::size_t>(i)], {m_PopupBounds.m_X + 12, y + 5}, theme.m_Text, GetFontSize());
+		canvas.DrawText(m_Items[static_cast<std::size_t>(i)], {m_PopupBounds.m_X + 12, y + 5}, theme.m_Text.WithAlpha(theme.m_Text.m_A * progress), GetFontSize());
 	}
 	canvas.PopClip();
 }

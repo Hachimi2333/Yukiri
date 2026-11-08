@@ -78,7 +78,7 @@ void Window::Impl::HandleEvent(const SDL_Event& event)
 		if (event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST)
 		{
 			if (event.type == SDL_EVENT_WINDOW_RESIZED || event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED ||
-				event.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) m_Tree.ClosePopup();
+				event.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) m_Tree.ClosePopup(true);
 			if (event.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED || event.type == SDL_EVENT_WINDOW_DISPLAY_CHANGED)
 				SDL_SetWindowMinimumSize(m_Native, static_cast<int>(static_cast<float>(m_Config.m_MinWidth) * scale),
 					static_cast<int>(static_cast<float>(m_Config.m_MinHeight) * scale));

@@ -12,6 +12,8 @@ public:
 	[[nodiscard]] bool IsChecked() const noexcept;
 	Signal<bool> m_CheckedChanged;
 protected:
+	bool OnAnimate(std::chrono::nanoseconds delta) override;
+	Detail::Transition m_CheckVisual;
 	Size OnMeasure(Size available) override;
 	void OnPaint(Canvas& canvas) override;
 	void Activate() override;

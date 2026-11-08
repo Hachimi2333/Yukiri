@@ -19,15 +19,16 @@ public:
 	void KeyDown(KeyEvent event);
 	void TextInput(std::string_view text);
 	void TextEditing(std::string_view text, int start, int length);
-	void SetFocus(Widget* widget);
+	void SetFocus(Widget* widget, bool bringIntoView = true);
 	void Forget(Widget* widget);
 	void Defer(std::function<void()> action);
-	void SetPopup(Widget* owner, std::function<void(Canvas&)> paint,
+	void SetPopup(Widget* owner, std::function<void(Canvas&, float)> paint,
 		std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key);
-	void ClosePopup();
+	void ClosePopup(bool immediate = false);
 	void LostFocus();
 	void Tick(std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now());
-	[[nodiscard]] bool HasPopup(const Widget* owner) const noexcept { return m_PopupOwner == owner; }
+	[[nodiscard]] bool OwnsPopup(const Widget* owner) const noexcept { return m_PopupOwner == owner; }
+	[[nodiscard]] bool HasPopup(const Widget* owner) const noexcept { return m_PopupOwner == owner && !m_PopupClosing; }
 	std::unique_ptr<Widget> m_Root;
 	Widget* m_Focus = nullptr;
 	Widget* m_Capture = nullptr;
@@ -51,7 +52,11 @@ private:
 	bool m_Flushing = false;
 	std::vector<std::function<void()>> m_Deferred;
 	Widget* m_PopupOwner = nullptr;
-	std::function<void(Canvas&)> m_PopupPaint;
+	std::function<void(Canvas&, float)> m_PopupPaint;
+	std::weak_ptr<int> m_PopupLifetime;
+	bool m_PopupClosing = false;
+	Transition m_PopupProgress;
+	std::chrono::steady_clock::time_point m_PopupTick{};
 	std::function<bool(PointerEvent&)> m_PopupPointer;
 	std::function<bool(KeyEvent&)> m_PopupKey;
 	Size m_LastSize{-1, -1};

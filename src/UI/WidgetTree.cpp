@@ -27,7 +27,7 @@ bool Within(Widget* candidate, Widget* ancestor)
 WidgetTree::~WidgetTree()
 {
 	m_Focus = m_Capture = m_Hover = nullptr;
-	ClosePopup();
+	ClosePopup(true);
 	m_Root.reset();
 }
 void WidgetTree::SetRoot(std::unique_ptr<Widget> root)
@@ -55,12 +55,12 @@ void WidgetTree::Paint(Canvas& canvas)
 {
 	Dispatch dispatch(*this);
 	if (m_Root) m_Root->Render(canvas);
-	if (m_PopupPaint)
+	if (m_PopupPaint && !m_PopupLifetime.expired())
 	{
 		auto paint = m_PopupPaint;
 		canvas.Save();
 		canvas.SetOffset({0, 0});
-		paint(canvas);
+		paint(canvas, m_PopupProgress.GetValue());
 		canvas.Restore();
 	}
 }
@@ -85,14 +85,14 @@ void WidgetTree::Flush()
 		for (auto& action : deferred) action();
 	}
 }
-void WidgetTree::SetFocus(Widget* widget)
+void WidgetTree::SetFocus(Widget* widget, bool bringIntoView)
 {
 	Dispatch dispatch(*this);
 	if (widget && (!widget->IsEnabled() || !widget->IsVisible() || !widget->IsFocusable())) return;
 	if (m_Focus == widget) return;
 	auto* previous = std::exchange(m_Focus, widget);
 	if (previous) previous->OnFocusChanged(false);
-	if (m_Focus) { m_Focus->OnFocusChanged(true); if (m_Focus) m_Focus->BringIntoView(); }
+	if (m_Focus) { m_Focus->OnFocusChanged(true); if (m_Focus && bringIntoView) m_Focus->BringIntoView(); }
 	m_Dirty = true;
 }
 void WidgetTree::Forget(Widget* widget)
@@ -110,7 +110,7 @@ void WidgetTree::Forget(Widget* widget)
 		if (m_PointerCapture) m_PointerCapture(false);
 	}
 	if (Within(m_Hover, widget)) { m_Hover->SetHovered(false); m_Hover = nullptr; }
-	if (Within(m_PopupOwner, widget)) ClosePopup();
+	if (Within(m_PopupOwner, widget)) ClosePopup(true);
 	m_Dirty = true;
 }
 Widget* WidgetTree::Target(Point position) { return m_Capture ? m_Capture : m_Root ? m_Root->HitTest(position) : nullptr; }
@@ -122,7 +122,7 @@ void WidgetTree::Route(PointerEvent& event, void (Widget::*handler)(PointerEvent
 void WidgetTree::PointerDown(PointerEvent event)
 {
 	Dispatch dispatch(*this);
-	if (m_PopupPointer)
+	if (m_PopupPointer && !m_PopupClosing)
 	{
 		auto pointer = m_PopupPointer;
 		if (pointer(event)) return;
@@ -130,13 +130,18 @@ void WidgetTree::PointerDown(PointerEvent event)
 	}
 	auto* focus = Target(event.m_Position);
 	while (focus && !focus->IsFocusable()) focus = focus->GetParent();
-	SetFocus(focus);
+	SetFocus(focus, false);
 	Route(event, &Widget::OnPointerDown);
 }
 void WidgetTree::PointerUp(PointerEvent event) { Dispatch dispatch(*this); Route(event, &Widget::OnPointerUp); }
 void WidgetTree::PointerMove(PointerEvent event)
 {
 	Dispatch dispatch(*this);
+	if (m_PopupPointer && !m_PopupClosing)
+	{
+		auto pointer = m_PopupPointer;
+		if (pointer(event)) return;
+	}
 	auto* hover = m_Root ? m_Root->HitTest(event.m_Position) : nullptr;
 	if (hover != m_Hover)
 	{
@@ -147,7 +152,12 @@ void WidgetTree::PointerMove(PointerEvent event)
 	}
 	Route(event, &Widget::OnPointerMove);
 }
-void WidgetTree::Wheel(PointerEvent event) { Dispatch dispatch(*this); Route(event, &Widget::OnWheel); }
+void WidgetTree::Wheel(PointerEvent event)
+{
+	Dispatch dispatch(*this);
+	if (m_PopupPointer && !m_PopupClosing) { auto pointer = m_PopupPointer; if (pointer(event)) return; }
+	Route(event, &Widget::OnWheel);
+}
 void WidgetTree::AdvanceFocus(bool backwards)
 {
 	std::vector<Widget*> candidates;
@@ -168,7 +178,7 @@ void WidgetTree::AdvanceFocus(bool backwards)
 void WidgetTree::KeyDown(KeyEvent event)
 {
 	Dispatch dispatch(*this);
-	if (m_PopupKey) { auto key = m_PopupKey; if (key(event)) return; }
+	if (m_PopupKey && !m_PopupClosing) { auto key = m_PopupKey; if (key(event)) return; }
 	for (auto* widget = m_Focus; widget && !event.m_Handled; widget = widget->GetParent()) widget->OnKeyDown(event);
 	if (!event.m_Handled && event.m_Key == Key::Tab) { ClosePopup(); AdvanceFocus(event.m_Modifiers.m_Shift); }
 }
@@ -178,27 +188,44 @@ void WidgetTree::TextEditing(std::string_view text, int start, int length)
 	Dispatch dispatch(*this);
 	if (m_Focus) m_Focus->OnTextEditing(text, start, length);
 }
-void WidgetTree::SetPopup(Widget* owner, std::function<void(Canvas&)> paint,
+void WidgetTree::SetPopup(Widget* owner, std::function<void(Canvas&, float)> paint,
 	std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key)
 {
+	if (m_PopupOwner != owner) m_PopupProgress.Snap(0);
 	m_PopupOwner = owner;
+	m_PopupLifetime = owner->ObserveLifetime();
+	m_PopupClosing = false;
 	m_PopupPaint = std::move(paint);
 	m_PopupPointer = std::move(pointer);
 	m_PopupKey = std::move(key);
+	m_PopupTick = std::chrono::steady_clock::now();
+	m_PopupProgress.Retarget(1, owner->MotionDuration(owner->GetTheme().m_Motion.m_PopupDuration));
+	m_Animating = m_PopupProgress.IsActive() || m_Animating;
 	m_Dirty = true;
 }
-void WidgetTree::ClosePopup()
+void WidgetTree::ClosePopup(bool immediate)
 {
-	m_PopupOwner = nullptr;
-	m_PopupPaint = {};
-	m_PopupPointer = {};
-	m_PopupKey = {};
+	if (!m_PopupOwner || (m_PopupClosing && !immediate)) return;
+	m_PopupClosing = true;
+	const auto duration = !immediate && !m_PopupLifetime.expired() ?
+		m_PopupOwner->MotionDuration(m_PopupOwner->GetTheme().m_Motion.m_PopupDuration) : std::chrono::nanoseconds::zero();
+	m_PopupTick = std::chrono::steady_clock::now();
+	m_PopupProgress.Retarget(0, duration);
+	if (!m_PopupProgress.IsActive())
+	{
+		m_PopupOwner = nullptr;
+		m_PopupPaint = {};
+		m_PopupPointer = {};
+		m_PopupKey = {};
+		m_PopupLifetime.reset();
+	}
+	else m_Animating = true;
 	m_Dirty = true;
 }
 void WidgetTree::LostFocus()
 {
 	Dispatch dispatch(*this);
-	ClosePopup();
+	ClosePopup(true);
 	SetFocus(nullptr);
 	if (m_Capture) m_Capture->ReleasePointer();
 }
@@ -206,5 +233,15 @@ void WidgetTree::Tick(std::chrono::steady_clock::time_point now)
 {
 	Dispatch dispatch(*this);
 	m_Animating = m_Root && m_Root->Tick(now);
+	if (m_PopupOwner)
+	{
+		if (m_PopupLifetime.expired()) { ClosePopup(true); return; }
+		m_PopupProgress.Retarget(m_PopupClosing ? 0.0f : 1.0f, m_PopupOwner->MotionDuration(m_PopupOwner->GetTheme().m_Motion.m_PopupDuration));
+		const float previous = m_PopupProgress.GetValue();
+		m_Animating = m_PopupProgress.Advance(std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_PopupTick)) || m_Animating;
+		m_PopupTick = now;
+		if (previous != m_PopupProgress.GetValue()) m_Dirty = true;
+		if (m_PopupClosing && !m_PopupProgress.IsActive()) ClosePopup(true);
+	}
 }
 }

@@ -76,3 +76,13 @@ int main()
 自定义控件继承 Widget，并重写 OnMeasure、OnArrange 或 OnPaint；OnPaint 接收局部坐标 Canvas。逻辑尺寸使用 DIP，Window::GetScale 返回实际缩放，GetContentBounds 返回排除自绘标题栏的全局逻辑内容区域。
 
 Signal::Connect 可带弱生命周期保护；Connection 析构自动断开。回调内允许断开连接或触发其他信号，当前分发使用连接快照。不要在回调内析构正在执行的 Application。
+
+## 动画与平滑滚动
+
+ApplicationConfig::m_Motion 设置默认动效，Theme::m_Motion 支持局部覆盖。使用 m_Enabled=false 可整体关闭该作用域的动效；非正时长立即完成。初始属性直接显示，后续状态变化使用短过渡，模型 getter 与通知始终立即反映目标值。
+
+ScrollView 默认平滑处理滚轮与现有方向键 / Home / End，支持小数滚轮增量、Shift 横向滚动和嵌套边界传递。GetOffset 返回当前可见位置；SetOffset 立即定位并取消尚未完成的滚动。SetSmoothScrolling(false) 立即完成当前目标，后续输入直接移动。滚动条拖动和焦点进入视口始终立即完成。
+
+指针点击不会因获取焦点而自动移动当前视口；键盘 Tab 导航和 RequestFocus 仍使焦点控件可见。纯滚动平移子树的全局坐标，命中测试、裁剪与 IME 光标区域保持一致，不触发整棵树重新测量。
+
+ComboBox 退出动画期间已不再接收下拉输入。窗口变化、焦点丢失、滚动或所属控件销毁会直接撤销弹出层。自定义控件可使用带 progress 参数的 ShowPopup 绘制回调；回调与窗口内弹出层共享安全生命周期。

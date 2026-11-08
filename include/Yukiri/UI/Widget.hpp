@@ -113,12 +113,16 @@ protected:
 	[[nodiscard]] std::vector<Widget*> Children() const;
 	void ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(PointerEvent&)> pointer,
 		std::function<bool(KeyEvent&)> key);
-	void ClosePopup();
+	void ShowPopup(std::function<void(Canvas&, float)> paint, std::function<bool(PointerEvent&)> pointer,
+		std::function<bool(KeyEvent&)> key);
+	void ClosePopup(bool immediate = false);
 	[[nodiscard]] bool IsPopupOpen() const noexcept;
 
 private:
 	friend class Detail::WidgetTree;
 	friend class Grid;
+	friend class ScrollView;
+	void TranslateSubtree(Point delta);
 	void Attach(Detail::WidgetTree* tree);
 	void SetHovered(bool hovered);
 	bool Tick(std::chrono::steady_clock::time_point now);

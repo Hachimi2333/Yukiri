@@ -1,6 +1,7 @@
 #include <Yukiri/Controls/TabView.hpp>
 #include <Yukiri/Render/Canvas.hpp>
 #include "Text/Unicode.hpp"
+#include "Visuals.hpp"
 
 namespace Yukiri
 {
@@ -8,6 +9,7 @@ TabView::TabView() { SetFocusable(true); }
 Widget& TabView::AddTab(std::string title, std::unique_ptr<Widget> content)
 {
 	content->SetVisible(GetChildren().size() == m_Selected);
+	m_TabWeights.emplace_back(GetChildren().size() == m_Selected ? 1.0f : 0.0f);
 	m_Titles.push_back(Detail::SanitizeUtf8(title, true));
 	return AddChild(std::move(content));
 }
@@ -16,7 +18,14 @@ Result<void> TabView::SetSelectedIndex(std::size_t index)
 	if (index >= GetChildren().size()) return std::unexpected(Error{ErrorCode::InvalidArgument, "Tab index is outside the content list."});
 	if (m_Selected == index) return {};
 	m_Selected = index;
-	for (std::size_t i = 0; i < GetChildren().size(); ++i) GetChildren()[i]->SetVisible(i == index);
+	RequestAnimationFrame();
+	const auto lifetime = ObserveLifetime();
+	const auto children = Children();
+	for (std::size_t i = 0; i < children.size(); ++i)
+	{
+		children[i]->SetVisible(i == index);
+		if (lifetime.expired()) return {};
+	}
 	InvalidateLayout();
 	RequestFocus();
 	m_SelectionChanged.Emit(index);
@@ -53,6 +62,23 @@ void TabView::OnArrange(Rect content)
 {
 	for (auto* child : Children()) child->Arrange({content.m_X, content.m_Y + 44, content.m_Width, std::max(0.0f, content.m_Height - 44)});
 }
+bool TabView::OnAnimate(std::chrono::nanoseconds delta)
+{
+	const auto headers = Headers();
+	if (m_Selected >= headers.size()) return false;
+	const auto rectangle = headers[m_Selected];
+	const auto duration = MotionDuration(GetTheme().m_Motion.m_SelectionDuration);
+	m_IndicatorX.Retarget(rectangle.m_X + 10, duration);
+	m_IndicatorWidth.Retarget(rectangle.m_Width - 20, duration);
+	bool active = m_IndicatorX.Advance(delta);
+	active = m_IndicatorWidth.Advance(delta) || active;
+	for (std::size_t i = 0; i < m_TabWeights.size(); ++i)
+	{
+		m_TabWeights[i].Retarget(i == m_Selected ? 1.0f : 0.0f, MotionDuration(GetTheme().m_Motion.m_StateDuration));
+		active = m_TabWeights[i].Advance(delta) || active;
+	}
+	return active;
+}
 void TabView::OnPaint(Canvas& canvas)
 {
 	Widget::OnPaint(canvas);
@@ -62,13 +88,11 @@ void TabView::OnPaint(Canvas& canvas)
 	for (std::size_t i = 0; i < headers.size(); ++i)
 	{
 		const auto& rectangle = headers[i];
-		if (i == m_Selected)
-		{
-			canvas.FillRectangle({rectangle.m_X, 2, rectangle.m_Width, 34}, theme.m_Hover, 5);
-			canvas.FillRectangle({rectangle.m_X + 10, 35, rectangle.m_Width - 20, 2}, theme.m_Accent, 1);
-		}
-		canvas.DrawText(i < m_Titles.size() ? m_Titles[i] : "Tab", {rectangle.m_X + 12, 8}, i == m_Selected ? theme.m_Accent : GetForeground(), GetFontSize());
+		const float weight = i < m_TabWeights.size() ? m_TabWeights[i].GetValue() : 0;
+		canvas.FillRectangle({rectangle.m_X, 2, rectangle.m_Width, 34}, theme.m_Hover.WithAlpha(weight), 5);
+		canvas.DrawText(i < m_Titles.size() ? m_Titles[i] : "Tab", {rectangle.m_X + 12, 8}, Detail::Mix(GetForeground(), theme.m_Accent, weight), GetFontSize());
 	}
+	canvas.FillRectangle({m_IndicatorX.GetValue(), 35, m_IndicatorWidth.GetValue(), 2}, theme.m_Accent, 1);
 	PaintFocus(canvas);
 }
 void TabView::OnPointerDown(PointerEvent& event)

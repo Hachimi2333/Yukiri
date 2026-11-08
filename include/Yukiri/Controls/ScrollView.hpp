@@ -12,6 +12,7 @@ public:
 	void SetHorizontalScrollEnabled(bool enabled);
 	void SetVerticalScrollEnabled(bool enabled);
 	void SetOffset(Point offset);
+	void SetSmoothScrolling(bool enabled);
 	[[nodiscard]] Point GetOffset() const noexcept;
 	void OnWheel(PointerEvent& event) override;
 	void OnPointerDown(PointerEvent& event) override;
@@ -20,6 +21,7 @@ public:
 	void OnKeyDown(KeyEvent& event) override;
 	void OnFocusChanged(bool focused) override;
 protected:
+	bool OnAnimate(std::chrono::nanoseconds delta) override;
 	Size OnMeasure(Size available) override;
 	void OnArrange(Rect content) override;
 	void OnPaintOverlay(Canvas& canvas) override;
@@ -28,7 +30,14 @@ protected:
 private:
 	[[nodiscard]] Rect VerticalThumb() const;
 	[[nodiscard]] Rect HorizontalThumb() const;
+	[[nodiscard]] Point ClampOffset(Point offset) const;
+	void ApplyOffset(Point offset);
+	void ScrollTo(Point target);
 	Point m_Offset;
+	Point m_Target;
+	Detail::Transition m_ScrollX;
+	Detail::Transition m_ScrollY;
+	bool m_Smooth = true;
 	Size m_Content;
 	Size m_Viewport;
 	bool m_Horizontal = false;
