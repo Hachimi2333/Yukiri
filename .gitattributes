@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.spv binary
+*.ttf binary
+*.ttc binary
+*.otf binary

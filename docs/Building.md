@@ -2,4 +2,14 @@
 
 需要 CMake >= 3.28、Ninja、支持 C++23 的 MSVC 或 MinGW，以及 Vulkan SDK 1.4。首轮验证环境包含 SDK 1.4.363.1。
 
-构建命令将在 CMake 阶段加入。MSVC 与 MinGW 必须分别构建全部依赖，不能混用对象文件或静态库。
+在仓库根目录运行：
+
+```powershell
+git submodule update --init --recursive
+./tools/Build.ps1 -Preset msvc-debug -Test
+./tools/Build.ps1 -Preset mingw-debug -Test
+```
+
+将 debug 替换为 release 可构建对应 Release 配置。脚本自动发现并加载 MSVC 开发者环境；MinGW 使用 PATH 中的 gcc / g++。可通过 -Jobs 控制并行数，-Target 指定目标。
+
+也可以在已配置的编译器环境中使用 cmake --preset、cmake --build --preset 和 ctest --preset。MSVC 与 MinGW 必须分别构建全部依赖，不能混用对象文件或静态库。
