@@ -4,7 +4,8 @@ param(
 	[string]$Target = '',
 	[int]$Jobs = 4,
 	[switch]$Test,
-	[switch]$Install
+	[switch]$Install,
+	[switch]$Fresh
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,10 +30,14 @@ try
 				[Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
 			}
 		}
+		$env:VSLANG = '1033'
 	}
-	& cmake --preset $Preset
+	$configureArguments = @('--preset', $Preset)
+	if ($Fresh) { $configureArguments += '--fresh' }
+	& cmake @configureArguments
 	if ($LASTEXITCODE -ne 0) { throw 'CMake configuration failed.' }
 	$buildArguments = @('--build', '--preset', $Preset, '--parallel', $Jobs)
+	if ($Fresh) { $buildArguments += '--clean-first' }
 	if ($Target) { $buildArguments += @('--target', $Target) }
 	& cmake @buildArguments
 	if ($LASTEXITCODE -ne 0) { throw 'The build failed.' }

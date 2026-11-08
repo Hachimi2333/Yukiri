@@ -1,9 +1,11 @@
 #pragma once
 
 #include <Yukiri/Core/Geometry.hpp>
+#include <Yukiri/Core/Error.hpp>
 #include <cstdint>
 #include <vector>
 #include <cmath>
+#include <optional>
 
 namespace Yukiri::Detail
 {
@@ -64,5 +66,6 @@ public:
 
 	std::vector<Vertex> m_Vertices;
 	std::vector<DrawBatch> m_Batches;
+	std::optional<Error> m_Error;
 };
 }

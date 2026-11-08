@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <cstdint>
+#include <filesystem>
 
 namespace Yukiri
 {
@@ -22,6 +23,7 @@ public:
 	[[nodiscard]] Result<bool> Poll(bool wait = true);
 	void Quit();
 	[[nodiscard]] std::uint32_t GetValidationErrorCount() const noexcept;
+	[[nodiscard]] Result<void> LoadFont(const std::filesystem::path& path, long faceIndex = 0);
 
 private:
 	struct Impl;

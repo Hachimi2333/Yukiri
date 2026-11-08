@@ -26,10 +26,11 @@ public:
 private:
 	friend class Window;
 	struct State { Point m_Offset; std::vector<Rect> m_Clips; };
-	Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text = nullptr);
+	Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text = nullptr, float scale = 1);
 	[[nodiscard]] Rect ToGlobal(Rect rectangle) const;
 	Detail::DrawList& m_List;
 	Detail::TextEngine* m_Text;
+	float m_Scale;
 	State m_State;
 	std::vector<State> m_Stack;
 };

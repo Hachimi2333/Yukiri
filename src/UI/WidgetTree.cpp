@@ -80,7 +80,8 @@ void WidgetTree::Forget(Widget* widget)
 {
 	if (Within(m_Focus, widget))
 	{
-		m_Focus = nullptr;
+		auto* previous = std::exchange(m_Focus, nullptr);
+		previous->OnFocusChanged(false);
 		if (m_EndTextInput) m_EndTextInput();
 	}
 	if (Within(m_Capture, widget))
@@ -148,8 +149,8 @@ void WidgetTree::KeyDown(KeyEvent event)
 {
 	Dispatch dispatch(*this);
 	if (m_PopupKey) { auto key = m_PopupKey; if (key(event)) return; }
-	if (event.m_Key == Key::Tab) { ClosePopup(); AdvanceFocus(event.m_Modifiers.m_Shift); return; }
 	for (auto* widget = m_Focus; widget && !event.m_Handled; widget = widget->GetParent()) widget->OnKeyDown(event);
+	if (!event.m_Handled && event.m_Key == Key::Tab) { ClosePopup(); AdvanceFocus(event.m_Modifiers.m_Shift); }
 }
 void WidgetTree::TextInput(std::string_view text) { Dispatch dispatch(*this); if (m_Focus) m_Focus->OnTextInput(text); }
 void WidgetTree::TextEditing(std::string_view text, int start, int length)

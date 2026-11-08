@@ -23,6 +23,7 @@ struct Application::Impl
 	ApplicationConfig m_Config;
 	std::vector<std::unique_ptr<Window>> m_Windows;
 	std::unique_ptr<Detail::RenderDevice> m_Device;
+	std::unique_ptr<Detail::TextEngine> m_Text;
 	std::thread::id m_Thread = std::this_thread::get_id();
 };
 
@@ -39,12 +40,21 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 	ApplicationActive = true;
 	auto impl = std::make_unique<Impl>();
 	impl->m_Config = config;
+	auto text = Detail::TextEngine::Create();
+	if (!text)
+	{
+		SDL_Quit();
+		ApplicationActive = false;
+		return std::unexpected(text.error());
+	}
+	impl->m_Text = std::move(*text);
 	return std::unique_ptr<Application>(new Application(std::move(impl)));
 }
 
 Application::~Application()
 {
 	m_Impl->m_Windows.clear();
+	m_Impl->m_Text.reset();
 	m_Impl->m_Device.reset();
 	SDL_Quit();
 	ApplicationActive = false;
@@ -57,6 +67,7 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 		return std::unexpected(Error{ErrorCode::InvalidArgument, "Window dimensions must be positive."});
 	auto impl = std::make_unique<Window::Impl>();
 	impl->m_Config = config;
+	impl->m_Text = m_Impl->m_Text.get();
 	const auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
 		(config.m_Visible ? 0 : SDL_WINDOW_HIDDEN) |
 		(config.m_Decoration == WindowDecoration::Custom ? SDL_WINDOW_BORDERLESS : 0);
@@ -73,6 +84,7 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 		auto device = Detail::RenderDevice::Create(window->m_Impl->m_Native, m_Impl->m_Config.m_EnableValidation);
 		if (!device) return std::unexpected(device.error());
 		m_Impl->m_Device = std::move(*device);
+		m_Impl->m_Text->SetDevice(m_Impl->m_Device.get());
 	}
 	auto renderer = Detail::WindowRenderer::Create(*m_Impl->m_Device, window->m_Impl->m_Native);
 	if (!renderer) return std::unexpected(renderer.error());
@@ -113,7 +125,7 @@ Result<bool> Application::Poll(bool wait)
 		}
 		if (target && target->IsOpen()) target->m_Impl->HandleEvent(input);
 	};
-	if (wait && !dirty && !m_Impl->m_Windows.empty() && SDL_WaitEventTimeout(&event, 100))
+	if (wait && !dirty && !m_Impl->m_Windows.empty() && SDL_WaitEventTimeout(&event, 500))
 		dispatch(event);
 	while (SDL_PollEvent(&event))
 		dispatch(event);
@@ -138,5 +150,17 @@ void Application::Quit()
 std::uint32_t Application::GetValidationErrorCount() const noexcept
 {
 	return m_Impl->m_Device ? m_Impl->m_Device->m_ValidationErrors : 0;
+}
+
+Result<void> Application::LoadFont(const std::filesystem::path& path, long faceIndex)
+{
+	auto loaded = m_Impl->m_Text->LoadFont(path, faceIndex);
+	if (!loaded) return loaded;
+	for (const auto& window : m_Impl->m_Windows)
+	{
+		window->m_Impl->m_Tree.m_LayoutDirty = true;
+		window->Invalidate();
+	}
+	return {};
 }
 }

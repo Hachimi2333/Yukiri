@@ -226,4 +226,5 @@ void Widget::OnKeyDown(KeyEvent&) {}
 void Widget::OnTextInput(std::string_view) {}
 void Widget::OnTextEditing(std::string_view, int, int) {}
 void Widget::OnFocusChanged(bool) {}
+bool Widget::AcceptsTextInput() const noexcept { return false; }
 }

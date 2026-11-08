@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include "Render/WindowRenderer.hpp"
 #include "UI/WidgetTree.hpp"
+#include "Text/TextEngine.hpp"
 
 namespace Yukiri
 {
@@ -16,6 +17,8 @@ struct Window::Impl
 	std::unique_ptr<Detail::WindowRenderer> m_Renderer;
 	Detail::WidgetTree m_Tree;
 	Window* m_Owner = nullptr;
+	Detail::TextEngine* m_Text = nullptr;
+	std::uint64_t m_BlinkTick = 0;
 	void HandleEvent(const SDL_Event& event);
 };
 }

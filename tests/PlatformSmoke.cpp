@@ -16,6 +16,7 @@ class PaintProbe : public Yukiri::Widget
 		canvas.FillRectangle({180, 0, 100, 100}, Yukiri::Color::FromHex(0x35B78A), 20);
 		canvas.PopClip();
 		canvas.DrawLine({30, 240}, {260, 280}, GetTheme().m_Text, 2);
+		canvas.DrawText("Yukiri / 中文字体回退", {20, 110}, GetTheme().m_Text, 16);
 	}
 };
 

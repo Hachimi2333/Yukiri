@@ -1,11 +1,12 @@
 #include <Yukiri/Render/Canvas.hpp>
 #include "DrawList.hpp"
+#include "Text/TextEngine.hpp"
 #include <cassert>
 #include <cmath>
 
 namespace Yukiri
 {
-Canvas::Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text) : m_List(list), m_Text(text)
+Canvas::Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text, float scale) : m_List(list), m_Text(text), m_Scale(scale)
 {
 	m_State.m_Clips.push_back({0, 0, size.m_Width, size.m_Height});
 }
@@ -46,4 +47,14 @@ void Canvas::Restore()
 void Canvas::SetOffset(Point offset) { m_State.m_Offset = offset; }
 void Canvas::PushClip(Rect rectangle) { m_State.m_Clips.push_back(m_State.m_Clips.back().Intersect(ToGlobal(rectangle))); }
 void Canvas::PopClip() { assert(m_State.m_Clips.size() > 1); m_State.m_Clips.pop_back(); }
+void Canvas::DrawText(std::string_view text, Point position, Color color, float fontSize)
+{
+	if (!m_Text || text.empty()) return;
+	auto result = m_Text->Draw(m_List, text, position + m_State.m_Offset, color, fontSize, m_Scale, m_State.m_Clips.back());
+	if (!result && !m_List.m_Error) m_List.m_Error = result.error();
+}
+Size Canvas::MeasureText(std::string_view text, float fontSize) const
+{
+	return m_Text ? m_Text->Measure(text, fontSize, m_Scale) : Size{};
+}
 }

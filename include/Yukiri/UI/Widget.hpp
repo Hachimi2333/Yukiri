@@ -89,6 +89,7 @@ public:
 	virtual void OnTextInput(std::string_view text);
 	virtual void OnTextEditing(std::string_view text, int start, int length);
 	virtual void OnFocusChanged(bool focused);
+	[[nodiscard]] virtual bool AcceptsTextInput() const noexcept;
 
 protected:
 	virtual Size OnMeasure(Size available);
