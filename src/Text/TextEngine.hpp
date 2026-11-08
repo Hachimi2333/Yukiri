@@ -9,6 +9,8 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <list>
+#include <string>
 
 namespace Yukiri::Detail
 {
@@ -45,13 +47,38 @@ public:
 	static Result<std::unique_ptr<TextEngine>> Create();
 	~TextEngine();
 	Result<void> LoadFont(const std::filesystem::path& path, long index = 0, bool prefer = true);
-	ShapedText Shape(std::string_view text, float fontSize, float scale = 1);
+	const ShapedText& Shape(std::string_view text, float fontSize, float scale = 1);
+	[[nodiscard]] std::uint64_t GetShapeCacheHits() const noexcept { return m_CacheHits; }
+	[[nodiscard]] std::size_t GetShapeCacheBytes() const noexcept { return m_CacheBytes; }
 	Size Measure(std::string_view text, float fontSize, float scale = 1);
 	std::vector<std::pair<std::size_t, float>> Carets(std::string_view text, float fontSize, float scale = 1);
 	Result<void> Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip);
 	void SetDevice(RenderDevice* device) { m_Device = device; }
 
 private:
+	struct ShapeKey
+	{
+		std::string m_Text;
+		float m_FontSize;
+		float m_Scale;
+		bool operator==(const ShapeKey&) const = default;
+	};
+	struct ShapeHash
+	{
+		std::size_t operator()(const ShapeKey& key) const noexcept;
+	};
+	struct CachedShape
+	{
+		ShapeKey m_Key;
+		ShapedText m_Shaped;
+		std::size_t m_Bytes;
+	};
+	ShapedText ShapeUncached(std::string_view text, float fontSize, float scale);
+	std::list<CachedShape> m_Shapes;
+	std::unordered_map<ShapeKey, std::list<CachedShape>::iterator, ShapeHash> m_ShapeIndex;
+	ShapedText m_Uncached;
+	std::uint64_t m_CacheHits = 0;
+	std::size_t m_CacheBytes = 0;
 	struct Glyph
 	{
 		std::uint32_t m_Texture = 0;

@@ -56,7 +56,7 @@ Result<TextEngine::Glyph> TextEngine::GetGlyph(Font& font, std::uint32_t glyph, 
 			texture.m_Pixels[static_cast<std::size_t>(page.m_Y + y) * AtlasSize + static_cast<std::size_t>(page.m_X + x)] = value;
 		}
 	}
-	texture.m_Dirty = true;
+	texture.MarkDirty(page.m_X, page.m_Y, bitmap.width, bitmap.rows);
 	result.m_Texture = page.m_Texture;
 	result.m_Uv = {static_cast<float>(page.m_X) / AtlasSize, static_cast<float>(page.m_Y) / AtlasSize,
 		static_cast<float>(width) / AtlasSize, static_cast<float>(height) / AtlasSize};
@@ -69,7 +69,7 @@ Result<TextEngine::Glyph> TextEngine::GetGlyph(Font& font, std::uint32_t glyph, 
 Result<void> TextEngine::Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip)
 {
 	if (!m_Device) return std::unexpected(Error{ErrorCode::GraphicsInitialization, "Text drawing requires an initialized graphics device."});
-	const auto shaped = Shape(text, fontSize, scale);
+	const auto& shaped = Shape(text, fontSize, scale);
 	const auto pixels = static_cast<unsigned>(std::clamp(std::round(fontSize * scale), 1.0f, 512.0f));
 	for (const auto& item : shaped.m_Glyphs)
 	{

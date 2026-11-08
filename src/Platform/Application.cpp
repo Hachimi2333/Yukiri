@@ -125,18 +125,13 @@ Result<bool> Application::Poll(bool wait)
 		bool& m_Polling;
 		~PollScope() { m_Polling = false; }
 	} scope{m_Impl->m_Polling};
-	bool dirty = false;
-	bool animating = false;
-	for (const auto& window : m_Impl->m_Windows)
-	{
-		dirty |= window->m_Impl->m_Dirty || window->m_Impl->m_Tree.m_Dirty || !window->IsOpen();
-		animating |= window->m_Impl->m_Tree.m_Animating;
-	}
 	SDL_Event event;
 	auto dispatch = [&](const SDL_Event& input)
 	{
 		if (input.type == SDL_EVENT_QUIT)
 			Quit();
+		if (input.type == SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED)
+			for (const auto& window : m_Impl->m_Windows) window->m_Impl->RefreshRate();
 		if (input.type == SDL_EVENT_SYSTEM_THEME_CHANGED)
 			for (const auto& window : m_Impl->m_Windows)
 				if (window->GetConfig().m_Theme == ThemeMode::System) window->SetTheme(ThemeMode::System);
@@ -148,10 +143,28 @@ Result<bool> Application::Poll(bool wait)
 		}
 		if (target && target->IsOpen()) target->m_Impl->HandleEvent(input);
 	};
-	if (wait && !dirty && !m_Impl->m_Windows.empty() && SDL_WaitEventTimeout(&event, animating ? 16 : 500))
-		dispatch(event);
-	while (SDL_PollEvent(&event))
-		dispatch(event);
+	if (wait && !m_Impl->m_Windows.empty())
+	{
+		const auto now = Detail::FramePacer::Clock::now();
+		auto deadline = Detail::FramePacer::Time::max();
+		for (const auto& window : m_Impl->m_Windows) deadline = std::min(deadline, window->m_Impl->NextUpdate(now));
+		if (deadline == Detail::FramePacer::Time::max())
+		{
+			if (SDL_WaitEvent(&event)) dispatch(event);
+		}
+		else if (deadline > now)
+		{
+			const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count();
+			if (milliseconds > 0)
+			{
+				if (SDL_WaitEventTimeout(&event, static_cast<Sint32>(std::min<std::int64_t>(milliseconds, 1000)))) dispatch(event);
+			}
+			else if (!SDL_PollEvent(&event)) SDL_DelayPrecise(static_cast<Uint64>(std::chrono::duration_cast<std::chrono::nanoseconds>(deadline - now).count()));
+			else dispatch(event);
+		}
+	}
+	// Bound event processing so a continuous input stream cannot starve animation frames.
+	for (int count = 0; count < 256 && SDL_PollEvent(&event); ++count) dispatch(event);
 	std::vector<Window*> closing;
 	for (const auto& window : m_Impl->m_Windows)
 	{
@@ -168,7 +181,7 @@ Result<bool> Application::Poll(bool wait)
 	for (auto* window : windows)
 	{
 		if (!window->IsOpen()) continue;
-		auto result = window->Update();
+		auto result = window->Update(wait);
 		if (!result)
 			return std::unexpected(result.error());
 	}

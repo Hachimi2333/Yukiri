@@ -5,7 +5,9 @@
 
 #include <iostream>
 #if defined(_WIN32)
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #include <windowsx.h>
 #include <SDL3/SDL.h>
@@ -113,7 +115,7 @@ int main()
 	if (!maxHitVerified || !overlappedVerified) return 9;
 #endif
 	auto primed = application.Poll(false);
-	auto repainted = application.Poll(false);
+	auto repainted = application.Poll(true);
 	if (!primed || !repainted || !replacement->m_Destroyed || replacement->m_DestroyedEarly ||
 		(*first)->GetContent()->GetBounds().Empty()) return 11;
 	for (int frame = 0; frame < 8; ++frame)

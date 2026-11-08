@@ -1,5 +1,6 @@
 #include "RenderDevice.hpp"
 #include <cstring>
+#include <algorithm>
 
 namespace Yukiri::Detail
 {
@@ -80,68 +81,68 @@ Result<std::uint32_t> RenderDevice::CreateTexture(std::uint32_t width, std::uint
 	return index;
 }
 
-Result<void> RenderDevice::Immediate(const std::function<void(VkCommandBuffer)>& record)
+void Texture::MarkDirty(int x, int y, std::uint32_t width, std::uint32_t height)
 {
-	auto allocation = VkInfo<VkCommandBufferAllocateInfo>(VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
-	allocation.commandPool = m_UploadPool;
-	allocation.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocation.commandBufferCount = 1;
-	VkCommandBuffer command = VK_NULL_HANDLE;
-	auto result = vkAllocateCommandBuffers(m_Device, &allocation, &command);
-	if (result != VK_SUCCESS) return GraphicsError("vkAllocateCommandBuffers", result);
-	auto begin = VkInfo<VkCommandBufferBeginInfo>(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);
-	begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	result = vkBeginCommandBuffer(command, &begin);
-	if (result == VK_SUCCESS)
+	if (!m_DirtyBounds.extent.width) m_DirtyBounds = {{x, y}, {width, height}};
+	else
 	{
-		record(command);
-		result = vkEndCommandBuffer(command);
+		const int right = std::max(m_DirtyBounds.offset.x + static_cast<int>(m_DirtyBounds.extent.width), x + static_cast<int>(width));
+		const int bottom = std::max(m_DirtyBounds.offset.y + static_cast<int>(m_DirtyBounds.extent.height), y + static_cast<int>(height));
+		m_DirtyBounds.offset.x = std::min(m_DirtyBounds.offset.x, x);
+		m_DirtyBounds.offset.y = std::min(m_DirtyBounds.offset.y, y);
+		m_DirtyBounds.extent = {static_cast<std::uint32_t>(right - m_DirtyBounds.offset.x), static_cast<std::uint32_t>(bottom - m_DirtyBounds.offset.y)};
 	}
-	if (result == VK_SUCCESS)
-	{
-		auto commandInfo = VkInfo<VkCommandBufferSubmitInfo>(VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO);
-		commandInfo.commandBuffer = command;
-		auto submit = VkInfo<VkSubmitInfo2>(VK_STRUCTURE_TYPE_SUBMIT_INFO_2);
-		submit.commandBufferInfoCount = 1;
-		submit.pCommandBufferInfos = &commandInfo;
-		result = vkQueueSubmit2(m_Queue, 1, &submit, VK_NULL_HANDLE);
-		if (result == VK_SUCCESS) result = vkQueueWaitIdle(m_Queue);
-	}
-	vkFreeCommandBuffers(m_Device, m_UploadPool, 1, &command);
-	if (result != VK_SUCCESS) return GraphicsError("Immediate upload", result);
-	return {};
+	m_Dirty = true;
 }
 
-Result<void> RenderDevice::FlushTextures()
+Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer& staging)
 {
+	VkDeviceSize required = 0;
 	for (const auto& texture : m_Textures)
 	{
 		if (!texture->m_Dirty) continue;
-		auto staging = CreateBuffer(texture->m_Pixels.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-		if (!staging) return std::unexpected(staging.error());
-		std::memcpy(staging->m_Mapped, texture->m_Pixels.data(), texture->m_Pixels.size());
-		vmaFlushAllocation(m_Allocator, staging->m_Allocation, 0, VK_WHOLE_SIZE);
-		auto uploaded = Immediate([&](VkCommandBuffer command)
-		{
-			ImageBarrier(command, texture->m_Image,
-				texture->m_Initialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				texture->m_Initialized ? VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_2_NONE,
-				texture->m_Initialized ? VK_ACCESS_2_SHADER_SAMPLED_READ_BIT : 0,
-				VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT);
-			VkBufferImageCopy copy{};
-			copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-			copy.imageExtent = {texture->m_Width, texture->m_Height, 1};
-			vkCmdCopyBufferToImage(command, staging->m_Buffer, texture->m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
-			ImageBarrier(command, texture->m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
-				VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
-		});
-		DestroyBuffer(*staging);
-		if (!uploaded) return uploaded;
+		if (!texture->m_Initialized) texture->m_DirtyBounds = {{0, 0}, {texture->m_Width, texture->m_Height}};
+		required = (required + 3) & ~VkDeviceSize(3);
+		required += static_cast<VkDeviceSize>(texture->m_DirtyBounds.extent.width) * texture->m_DirtyBounds.extent.height;
+	}
+	if (!required) return {};
+	if (staging.m_Size < required)
+	{
+		DestroyBuffer(staging);
+		auto allocated = CreateBuffer(std::max<VkDeviceSize>(required * 2, 65536), VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+		if (!allocated) return std::unexpected(allocated.error());
+		staging = *allocated;
+	}
+	VkDeviceSize offset = 0;
+	for (const auto& texture : m_Textures)
+	{
+		if (!texture->m_Dirty) continue;
+		const auto bounds = texture->m_DirtyBounds;
+		offset = (offset + 3) & ~VkDeviceSize(3);
+		for (std::uint32_t row = 0; row < bounds.extent.height; ++row)
+			std::memcpy(static_cast<unsigned char*>(staging.m_Mapped) + offset + row * bounds.extent.width,
+				texture->m_Pixels.data() + (static_cast<std::size_t>(bounds.offset.y) + row) * texture->m_Width + bounds.offset.x, bounds.extent.width);
+		ImageBarrier(command, texture->m_Image,
+			texture->m_Initialized ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			texture->m_Initialized ? VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_2_NONE,
+			texture->m_Initialized ? VK_ACCESS_2_SHADER_SAMPLED_READ_BIT : 0,
+			VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT);
+		VkBufferImageCopy copy{};
+		copy.bufferOffset = offset;
+		copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+		copy.imageOffset = {bounds.offset.x, bounds.offset.y, 0};
+		copy.imageExtent = {bounds.extent.width, bounds.extent.height, 1};
+		vkCmdCopyBufferToImage(command, staging.m_Buffer, texture->m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+		ImageBarrier(command, texture->m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
+		offset += static_cast<VkDeviceSize>(bounds.extent.width) * bounds.extent.height;
 		texture->m_Initialized = true;
 		texture->m_Dirty = false;
+		texture->m_DirtyBounds = {};
 	}
+	vmaFlushAllocation(m_Allocator, staging.m_Allocation, 0, required);
 	return {};
 }
 }

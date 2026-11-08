@@ -178,7 +178,7 @@ void Widget::OnArrange(Rect content) { for (auto* child : Children()) child->Arr
 
 void Widget::Render(Canvas& canvas)
 {
-	if (!m_Visible || m_Bounds.Empty()) return;
+	if (!m_Visible || m_Bounds.Intersect(canvas.m_State.m_Clips.back()).Empty()) return;
 	canvas.Save();
 	canvas.SetOffset({m_Bounds.m_X, m_Bounds.m_Y});
 	canvas.PushClip(GetLocalBounds());

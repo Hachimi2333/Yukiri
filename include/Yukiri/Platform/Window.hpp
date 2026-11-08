@@ -49,7 +49,7 @@ private:
 	friend class Application;
 	struct Impl;
 	explicit Window(std::unique_ptr<Impl> impl);
-	[[nodiscard]] Result<void> Update();
+	[[nodiscard]] Result<void> Update(bool paced);
 	std::unique_ptr<Impl> m_Impl;
 };
 }

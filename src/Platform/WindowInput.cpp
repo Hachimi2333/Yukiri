@@ -82,6 +82,8 @@ void Window::Impl::HandleEvent(const SDL_Event& event)
 			if (event.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED || event.type == SDL_EVENT_WINDOW_DISPLAY_CHANGED)
 				SDL_SetWindowMinimumSize(m_Native, static_cast<int>(static_cast<float>(m_Config.m_MinWidth) * scale),
 					static_cast<int>(static_cast<float>(m_Config.m_MinHeight) * scale));
+			if (event.type == SDL_EVENT_WINDOW_DISPLAY_CHANGED) RefreshRate();
+			if (event.type == SDL_EVENT_WINDOW_RESTORED || event.type == SDL_EVENT_WINDOW_SHOWN) m_Pacer.Reset();
 			m_Tree.m_LayoutDirty = true;
 			m_Owner->Invalidate();
 		}

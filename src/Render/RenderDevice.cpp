@@ -149,11 +149,6 @@ Result<void> RenderDevice::Initialize(SDL_Window* window, bool validation)
 	allocatorInfo.pVulkanFunctions = &functions;
 	result = vmaCreateAllocator(&allocatorInfo, &m_Allocator);
 	if (result != VK_SUCCESS) return GraphicsError("vmaCreateAllocator", result);
-	auto poolInfo = VkInfo<VkCommandPoolCreateInfo>(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO);
-	poolInfo.queueFamilyIndex = m_QueueFamily;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-	result = vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_UploadPool);
-	if (result != VK_SUCCESS) return GraphicsError("vkCreateCommandPool", result);
 	VkDescriptorSetLayoutBinding binding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
 	auto layoutInfo = VkInfo<VkDescriptorSetLayoutCreateInfo>(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
 	layoutInfo.bindingCount = 1;
@@ -204,7 +199,6 @@ RenderDevice::~RenderDevice()
 		if (m_PipelineLayout) vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
 		if (m_DescriptorPool) vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
 		if (m_SetLayout) vkDestroyDescriptorSetLayout(m_Device, m_SetLayout, nullptr);
-		if (m_UploadPool) vkDestroyCommandPool(m_Device, m_UploadPool, nullptr);
 		if (m_Allocator) vmaDestroyAllocator(m_Allocator);
 		vkDestroyDevice(m_Device, nullptr);
 	}

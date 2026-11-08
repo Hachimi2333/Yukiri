@@ -6,6 +6,7 @@
 #include <cmath>
 #include <fstream>
 #include <limits>
+#include <cmath>
 
 namespace Yukiri::Detail
 {
@@ -49,6 +50,9 @@ Result<void> TextEngine::LoadFont(const std::filesystem::path& path, long index,
 		return std::unexpected(Error{ErrorCode::FontLoading, "FreeType could not load the requested font face."});
 	font->m_Shaper = hb_ft_font_create_referenced(font->m_Face);
 	font->m_Id = m_NextFont++;
+	m_ShapeIndex.clear();
+	m_Shapes.clear();
+	m_CacheBytes = 0;
 	if (prefer) m_Fonts.insert(m_Fonts.begin(), std::move(font)); else m_Fonts.push_back(std::move(font));
 	return {};
 }
@@ -66,7 +70,39 @@ Font& TextEngine::ChooseFont(std::string_view grapheme)
 	}
 	return *m_Fonts.front();
 }
-ShapedText TextEngine::Shape(std::string_view input, float fontSize, float scale)
+std::size_t TextEngine::ShapeHash::operator()(const ShapeKey& key) const noexcept
+{
+	auto hash = std::hash<std::string>{}(key.m_Text);
+	hash ^= std::hash<float>{}(key.m_FontSize) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+	return hash ^ (std::hash<float>{}(key.m_Scale) + 0x9e3779b9 + (hash << 6) + (hash >> 2));
+}
+const ShapedText& TextEngine::Shape(std::string_view input, float fontSize, float scale)
+{
+	fontSize = std::isfinite(fontSize) ? std::clamp(fontSize, 1.0f, 512.0f) : 14;
+	scale = std::isfinite(scale) ? std::clamp(scale, 0.25f, 8.0f) : 1;
+	ShapeKey key{std::string(input), fontSize, scale};
+	if (const auto found = m_ShapeIndex.find(key); found != m_ShapeIndex.end())
+	{
+		++m_CacheHits;
+		m_Shapes.splice(m_Shapes.begin(), m_Shapes, found->second);
+		return found->second->m_Shaped;
+	}
+	auto shaped = ShapeUncached(input, fontSize, scale);
+	constexpr std::size_t Budget = 8 * 1024 * 1024;
+	const auto bytes = sizeof(CachedShape) + 2 * key.m_Text.capacity() + shaped.m_Glyphs.capacity() * sizeof(ShapedGlyph) + 128;
+	if (bytes > Budget) { m_Uncached = std::move(shaped); return m_Uncached; }
+	while (m_CacheBytes + bytes > Budget)
+	{
+		m_CacheBytes -= m_Shapes.back().m_Bytes;
+		m_ShapeIndex.erase(m_Shapes.back().m_Key);
+		m_Shapes.pop_back();
+	}
+	m_Shapes.push_front({std::move(key), std::move(shaped), bytes});
+	m_ShapeIndex.emplace(m_Shapes.front().m_Key, m_Shapes.begin());
+	m_CacheBytes += bytes;
+	return m_Shapes.front().m_Shaped;
+}
+ShapedText TextEngine::ShapeUncached(std::string_view input, float fontSize, float scale)
 {
 	const std::string text = SanitizeUtf8(input);
 	ShapedText shaped;
@@ -111,12 +147,12 @@ ShapedText TextEngine::Shape(std::string_view input, float fontSize, float scale
 }
 Size TextEngine::Measure(std::string_view text, float fontSize, float scale)
 {
-	const auto shaped = Shape(text, fontSize, scale);
+	const auto& shaped = Shape(text, fontSize, scale);
 	return {shaped.m_Width, shaped.m_Height};
 }
 std::vector<std::pair<std::size_t, float>> TextEngine::Carets(std::string_view text, float fontSize, float scale)
 {
-	const auto shaped = Shape(text, fontSize, scale);
+	const auto& shaped = Shape(text, fontSize, scale);
 	const auto boundaries = GraphemeBoundaries(text);
 	std::vector<std::pair<std::size_t, float>> result;
 	for (const auto boundary : boundaries)

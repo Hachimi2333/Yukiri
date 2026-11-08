@@ -29,6 +29,8 @@ struct Texture
 	std::vector<unsigned char> m_Pixels;
 	bool m_Dirty = true;
 	bool m_Initialized = false;
+	VkRect2D m_DirtyBounds{};
+	void MarkDirty(int x, int y, std::uint32_t width, std::uint32_t height);
 };
 
 class RenderDevice final
@@ -41,8 +43,7 @@ public:
 	Result<Buffer> CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
 	void DestroyBuffer(Buffer& buffer);
 	Result<std::uint32_t> CreateTexture(std::uint32_t width, std::uint32_t height);
-	Result<void> FlushTextures();
-	Result<void> Immediate(const std::function<void(VkCommandBuffer)>& record);
+	Result<void> RecordTextureUploads(VkCommandBuffer command, Buffer& staging);
 
 	VkInstance m_Instance = VK_NULL_HANDLE;
 	VkPhysicalDevice m_Physical = VK_NULL_HANDLE;
@@ -50,7 +51,6 @@ public:
 	VkQueue m_Queue = VK_NULL_HANDLE;
 	std::uint32_t m_QueueFamily = 0;
 	VmaAllocator m_Allocator = VK_NULL_HANDLE;
-	VkCommandPool m_UploadPool = VK_NULL_HANDLE;
 	VkDescriptorSetLayout m_SetLayout = VK_NULL_HANDLE;
 	VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
 	VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;

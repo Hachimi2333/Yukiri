@@ -5,6 +5,7 @@
 #include <cstring>
 #include <limits>
 #include <iostream>
+#include <chrono>
 
 namespace Yukiri::Detail
 {
@@ -70,6 +71,7 @@ WindowRenderer::~WindowRenderer()
 	for (auto& frame : m_Frames)
 	{
 		m_Device.DestroyBuffer(frame.m_Vertices);
+		m_Device.DestroyBuffer(frame.m_Uploads);
 		if (frame.m_Acquired) vkDestroySemaphore(m_Device.m_Device, frame.m_Acquired, nullptr);
 		if (frame.m_Fence) vkDestroyFence(m_Device.m_Device, frame.m_Fence, nullptr);
 	}
@@ -147,30 +149,45 @@ Result<void> WindowRenderer::Recreate()
 	return CreatePipeline();
 }
 
-Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color background)
+Result<bool> WindowRenderer::TryBeginFrame()
 {
 	m_NeedsRetry = false;
 	int width = 0;
 	int height = 0;
 	SDL_GetWindowSizeInPixels(m_Window, &width, &height);
-	if (width <= 0 || height <= 0 || logicalSize.m_Width <= 0 || logicalSize.m_Height <= 0 ||
-		(SDL_GetWindowFlags(m_Window) & SDL_WINDOW_MINIMIZED)) return {};
+	if (width <= 0 || height <= 0 || (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_MINIMIZED)) return false;
 	if (!m_Swapchain || static_cast<std::uint32_t>(width) != m_Extent.width || static_cast<std::uint32_t>(height) != m_Extent.height)
 	{
 		auto recreated = Recreate();
-		if (!recreated) return recreated;
-		if (!m_Swapchain) { m_NeedsRetry = true; return {}; }
+		if (!recreated) return std::unexpected(recreated.error());
+		if (!m_Swapchain) return false;
 	}
-	auto flushed = m_Device.FlushTextures();
-	if (!flushed) return flushed;
 	auto& frame = m_Frames[m_Frame];
-	auto result = vkWaitForFences(m_Device.m_Device, 1, &frame.m_Fence, VK_TRUE, UINT64_MAX);
-	if (result != VK_SUCCESS) return GraphicsError("Frame wait", result);
-	std::uint32_t imageIndex = 0;
-	result = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain, UINT64_MAX, frame.m_Acquired, VK_NULL_HANDLE, &imageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR) { m_NeedsRetry = true; return Recreate(); }
-	const bool suboptimal = result == VK_SUBOPTIMAL_KHR;
-	if (result != VK_SUCCESS && !suboptimal) return GraphicsError("Acquire swapchain image", result);
+	auto result = vkGetFenceStatus(m_Device.m_Device, frame.m_Fence);
+	if (result == VK_NOT_READY) return false;
+	if (result != VK_SUCCESS) return GraphicsError("Frame fence status", result);
+	result = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain, 0, frame.m_Acquired, VK_NULL_HANDLE, &m_AcquiredImage);
+	if (result == VK_NOT_READY || result == VK_TIMEOUT) return false;
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		auto recreated = Recreate();
+		if (!recreated) return std::unexpected(recreated.error());
+		return false;
+	}
+	if (result == VK_SUBOPTIMAL_KHR) m_NeedsRetry = true;
+	else if (result != VK_SUCCESS) return GraphicsError("Acquire swapchain image", result);
+	return true;
+}
+
+Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color background)
+{
+	const auto start = std::chrono::steady_clock::now();
+	const bool suboptimal = m_NeedsRetry;
+	auto& frame = m_Frames[m_Frame];
+	const auto imageIndex = m_AcquiredImage;
+	const int width = static_cast<int>(m_Extent.width);
+	const int height = static_cast<int>(m_Extent.height);
+	VkResult result;
 	const auto bytes = list.m_Vertices.size() * sizeof(Vertex);
 	if (bytes > frame.m_Vertices.m_Size)
 	{
@@ -189,6 +206,8 @@ Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color 
 	begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	result = vkBeginCommandBuffer(frame.m_Command, &begin);
 	if (result != VK_SUCCESS) return GraphicsError("Begin frame", result);
+	auto uploads = m_Device.RecordTextureUploads(frame.m_Command, frame.m_Uploads);
+	if (!uploads) return uploads;
 	ImageBarrier(frame.m_Command, m_Images[imageIndex],
 		m_Initialized[imageIndex] ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_NONE, 0,
@@ -260,7 +279,10 @@ Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color 
 	present.swapchainCount = 1;
 	present.pSwapchains = &m_Swapchain;
 	present.pImageIndices = &imageIndex;
+	const auto beforePresent = std::chrono::steady_clock::now();
+	m_RecordMs = std::chrono::duration<double, std::milli>(beforePresent - start).count();
 	result = vkQueuePresentKHR(m_Device.m_Queue, &present);
+	m_PresentMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - beforePresent).count();
 	if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) ++m_PresentCount;
 	m_Frame = (m_Frame + 1) % m_Frames.size();
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || suboptimal)

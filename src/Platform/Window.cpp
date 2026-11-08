@@ -16,11 +16,14 @@ Window::Window(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl))
 	m_Impl->m_Tree.m_MeasureText = [this](std::string_view text, float size) { return MeasureText(text, size); };
 	m_Impl->m_Cursors = {SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT), SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER),
 		SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_TEXT)};
+	m_Impl->m_Statistics.m_Enabled = SDL_GetEnvironmentVariable(SDL_GetEnvironment(), "YUKIRI_FRAME_STATS") != nullptr;
+	m_Impl->RefreshRate();
 	SetTheme(m_Impl->m_Config.m_Theme);
 }
 
 Window::~Window()
 {
+	m_Impl->m_Statistics.Print(SDL_GetWindowID(m_Impl->m_Native), m_Impl->m_Pacer.GetInterval());
 	m_Impl->m_Tree.SetRoot(nullptr);
 	m_Impl->m_Chrome.reset();
 	m_Impl->m_Renderer.reset();
@@ -116,19 +119,49 @@ Result<void> Window::Minimize() { return PlatformOperation(SDL_MinimizeWindow(m_
 Result<void> Window::Maximize() { return PlatformOperation(SDL_MaximizeWindow(m_Impl->m_Native)); }
 Result<void> Window::Restore() { return PlatformOperation(SDL_RestoreWindow(m_Impl->m_Native)); }
 
-Result<void> Window::Update()
+void Window::Impl::RefreshRate()
 {
+	const auto* mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(m_Native));
+	if (mode) m_Pacer.SetRefreshRate(mode->refresh_rate_numerator, mode->refresh_rate_denominator, mode->refresh_rate);
+	else m_Pacer.SetRefreshRate(0, 0);
+}
+Detail::FramePacer::Time Window::Impl::NextUpdate(Detail::FramePacer::Time now) const
+{
+	if (!m_Open) return now;
+	if (SDL_GetWindowFlags(m_Native) & SDL_WINDOW_MINIMIZED) return Detail::FramePacer::Time::max();
+	if (m_Dirty || m_Tree.m_Dirty || m_Tree.m_Animating) return m_Pacer.GetDeadline();
+	if (m_Tree.m_Focus && m_Tree.m_Focus->AcceptsTextInput())
+	{
+		const auto ticks = SDL_GetTicks();
+		return now + std::chrono::milliseconds(500 - ticks % 500);
+	}
+	return Detail::FramePacer::Time::max();
+}
+Result<void> Window::Update(bool paced)
+{
+	using Clock = Detail::FramePacer::Clock;
+	const auto start = Clock::now();
 	if (SDL_GetWindowFlags(m_Impl->m_Native) & SDL_WINDOW_MINIMIZED)
 	{
 		m_Impl->m_Dirty = m_Impl->m_Tree.m_Dirty = m_Impl->m_Tree.m_Animating = false;
+		m_Impl->m_Pacer.Reset();
 		return {};
 	}
-	m_Impl->m_Tree.Tick();
 	const auto blink = SDL_GetTicks() / 500;
 	if (m_Impl->m_Tree.m_Focus && m_Impl->m_Tree.m_Focus->AcceptsTextInput() && blink != m_Impl->m_BlinkTick)
 		m_Impl->m_Tree.m_Dirty = true;
 	m_Impl->m_BlinkTick = blink;
-	if (!m_Impl->m_Dirty && !m_Impl->m_Tree.m_Dirty) return {};
+	if (!m_Impl->m_Dirty && !m_Impl->m_Tree.m_Dirty && !m_Impl->m_Tree.m_Animating) return {};
+	if (paced && !m_Impl->m_Pacer.IsDue(start)) return {};
+	auto ready = m_Impl->m_Renderer->TryBeginFrame();
+	if (!ready) return std::unexpected(ready.error());
+	if (!*ready)
+	{
+		m_Impl->m_Statistics.Busy();
+		m_Impl->m_Pacer.Retry(start);
+		return {};
+	}
+	m_Impl->m_Tree.Tick(start);
 	m_Impl->m_Dirty = false;
 	m_Impl->m_Tree.m_Dirty = false;
 	Detail::DrawList list;
@@ -139,8 +172,12 @@ Result<void> Window::Update()
 	m_Impl->m_Tree.Paint(canvas);
 	if (m_Impl->m_Chrome) m_Impl->m_Chrome->Paint(canvas);
 	if (list.m_Error) return std::unexpected(*list.m_Error);
+	const auto beforeDraw = Clock::now();
 	auto result = m_Impl->m_Renderer->Draw(list, size, GetTheme().m_Background);
 	if (!result) return result;
+	m_Impl->m_Statistics.Record(start, std::chrono::duration<double, std::milli>(beforeDraw - start).count(),
+		m_Impl->m_Renderer->GetRecordMilliseconds(), m_Impl->m_Renderer->GetPresentMilliseconds());
+	m_Impl->m_Pacer.Submitted(start);
 	if (m_Impl->m_Renderer->NeedsRetry()) m_Impl->m_Dirty = true;
 	return {};
 }

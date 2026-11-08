@@ -1,6 +1,8 @@
 #include "Gallery.hpp"
 #include <iostream>
 #include <string_view>
+#include <thread>
+#include <chrono>
 
 int main(int argc, char** argv)
 {
@@ -23,7 +25,8 @@ int main(int argc, char** argv)
 	{
 		for (int i = 0; i < 12; ++i)
 		{
-			auto polled = app.Poll(true);
+			std::this_thread::sleep_for(std::chrono::milliseconds(450));
+			auto polled = app.Poll(false);
 			if (!polled) return 10;
 		}
 		app.Quit();
@@ -42,8 +45,14 @@ int main(int argc, char** argv)
 			if (frame == 45) (*mainWindow)->SetTheme(Yukiri::ThemeMode::Dark);
 			(*mainWindow)->Invalidate();
 			(*second)->Invalidate();
-			auto polled = app.Poll(false);
-			if (!polled) { std::cerr << polled.error().m_Message << '\n'; return 6; }
+			const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(10);
+			do
+			{
+				(*mainWindow)->Invalidate();
+				(*second)->Invalidate();
+				auto polled = app.Poll(true);
+				if (!polled) { std::cerr << polled.error().m_Message << '\n'; return 6; }
+			} while (std::chrono::steady_clock::now() < deadline);
 		}
 		app.Quit();
 		auto closed = app.Poll(false);

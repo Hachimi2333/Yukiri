@@ -1,3 +1,4 @@
+#include "Platform/FontDiscovery.hpp"
 #include "Text/TextEditor.hpp"
 #include "Text/TextEngine.hpp"
 #include "UI/WidgetTree.hpp"
@@ -105,4 +106,30 @@ TEST_CASE("IME preedit is separate from committed text and selection", "[text][i
 	editor->SetReadOnly(true);
 	tree.TextInput("ignored");
 	REQUIRE(editor->GetText() == "original");
+}
+
+TEST_CASE("Text shaping cache reuses results and separates DPI and font generations", "[text][cache]")
+{
+	auto created = Yukiri::Detail::TextEngine::Create();
+	REQUIRE(created);
+	auto& engine = **created;
+	const auto width = engine.Measure("Cached 中文", 16, 1).m_Width;
+	const auto hits = engine.GetShapeCacheHits();
+	REQUIRE(engine.Measure("Cached 中文", 16, 1).m_Width == width);
+	REQUIRE(engine.GetShapeCacheHits() == hits + 1);
+	engine.Measure("Cached 中文", 16, 2);
+	REQUIRE(engine.GetShapeCacheHits() == hits + 1);
+	const auto bytes = engine.GetShapeCacheBytes();
+	REQUIRE(bytes > 0);
+	REQUIRE_FALSE(engine.LoadFont("missing-cache-font.ttf"));
+	REQUIRE(engine.GetShapeCacheBytes() == bytes);
+	bool reloaded = false;
+	for (const auto& source : Yukiri::Detail::DiscoverFonts())
+	{
+		if (engine.LoadFont(source.m_Path, source.m_Index)) { reloaded = true; break; }
+	}
+	REQUIRE(reloaded);
+	REQUIRE(engine.GetShapeCacheBytes() == 0);
+	for (int i = 0; i < 3000; ++i) engine.Measure(std::to_string(i) + std::string(100, 'x'), 16);
+	REQUIRE(engine.GetShapeCacheBytes() <= 8 * 1024 * 1024);
 }

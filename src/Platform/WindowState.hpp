@@ -6,6 +6,8 @@
 #include "UI/WidgetTree.hpp"
 #include "Text/TextEngine.hpp"
 #include "WindowChrome.hpp"
+#include "FramePacer.hpp"
+#include "FrameStatistics.hpp"
 
 namespace Yukiri
 {
@@ -22,6 +24,10 @@ struct Window::Impl
 	Window* m_Owner = nullptr;
 	Detail::TextEngine* m_Text = nullptr;
 	std::uint64_t m_BlinkTick = 0;
+	Detail::FramePacer m_Pacer;
+	Detail::FrameStatistics m_Statistics;
+	void RefreshRate();
+	[[nodiscard]] Detail::FramePacer::Time NextUpdate(Detail::FramePacer::Time now) const;
 	std::unique_ptr<Detail::WindowChrome> m_Chrome;
 	std::array<SDL_Cursor*, 3> m_Cursors{};
 	void HandleEvent(const SDL_Event& event);
