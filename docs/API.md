@@ -39,7 +39,9 @@ WindowConfig::m_Decoration 在创建时选择 Native / Custom，默认 Native。
 ```cpp
 #include <Yukiri/Yukiri.hpp>
 #include <iostream>
+#include <memory>
 #include <string>
+#include <utility>
 
 int main()
 {

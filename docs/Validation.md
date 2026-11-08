@@ -1,41 +1,48 @@
 # 验证记录
 
-## 环境
+日期：2026-11-08。只将实际执行的项目列为通过。
 
-- OS：Windows 11 x64，版本 10.0.26300。
-- CMake 4.4.3；Ninja 1.13.2。
-- MinGW GCC 16.2.0；MSVC Build Tools 18，工具集 14.51。
-- Vulkan SDK 1.4.363.1。
-- NVIDIA RTX 5060 Laptop GPU：Vulkan 1.4.357；AMD Radeon 610M：Vulkan 1.4.315。
+## 本机环境
 
-## 已执行
+- Windows 11 x64，10.0.26300；实际窗口缩放 125%。
+- CMake 4.4.3，Ninja 1.13.2。
+- MSVC 19.51.36260 / Build Tools 18，工具集 14.51.36231。
+- MinGW GCC 16.2.0，各工具链使用独立静态依赖产物。
+- Vulkan SDK 1.4.363.1；实际选择 NVIDIA RTX 5060 Laptop GPU（Vulkan 1.4.357）。
+- AMD Radeon 610M 可枚举（Vulkan 1.4.315），本轮未单独执行其运行验证。
 
-- 规划阶段：仓库与工具链检查；MinGW C++23 expected / unique_ptr 语法检查通过。
-- 开发规范阶段：检查文档链接与 Git 差异。
+## 自动化结果
 
-- 构建骨架：MSVC Debug / MinGW Debug 从子模块源码完成静态依赖与 Yukiri 构建。
+| 配置 | 构建 | CTest | 平台 / Gallery GPU smoke | 可重定位安装包消费 |
+|---|---|---|---|---|
+| MSVC Debug | 通过 | 24 / 24 | 通过 | 通过 |
+| MSVC Release | 通过 | 24 / 24 | 通过 | 通过 |
+| MinGW Debug | 通过 | 24 / 24 | 通过 | 通过 |
+| MinGW Release | 通过 | 24 / 24 | 通过 | 通过 |
 
-- 平台层：MSVC Debug / MinGW Debug 均通过双窗口 smoke；覆盖重复应用、非法尺寸、关闭单窗口和退出。此时尚未接入 GPU 绘制。
+CPU 测试覆盖 Signal 重入与连接寿命、布局约束 / Grid span、事件路由、焦点、分发和绘制期间销毁、主题继承、控件键盘行为、滚动可见性、下拉层边界、UTF-8 / 字素 / 单词边界、编辑历史、非法输入和 IME 模型。文字测量在逻辑 scale 1 / 1.5 / 2 下检查；这不代表对应 OS DPI 已人工验收。公共头文件以独立翻译单元编译。
 
-- Vulkan：MSVC Debug / MinGW Debug 在 RTX 5060 上均通过双窗口各八帧清屏与呈现，验证层错误计数为零。尚未以此声称复杂控件绘制已验证。
+平台 smoke 覆盖错误路径、原生 / 自绘双窗口、渲染回调替换内容、关闭通知和 Poll 重入拒绝；Win32 检查 WS_OVERLAPPEDWINDOW / 非 WS_POPUP 和 HTMAXBUTTON。Gallery 执行 70 帧主题 / 控件 / 标签页变化、360 DIP 窄窗口及恢复大小。两者均捕获进程退出码，Vulkan 验证层没有错误或 VUID 诊断。
 
-- UI 核心：两套 Debug 的 8 项 Catch2 / CTest 测试全部通过；覆盖信号重入、连接寿命、布局、Grid span、焦点和分发期间销毁。
-- 绘制：两套 Debug 的 GPU smoke 已加入圆角、边框、透明叠放、矩形裁剪与线条，验证层错误为零。
-- MinGW 运行库：复制所选编译器的 DLL 到可执行文件目录，避免 PATH 中其他工具的同名 DLL 干扰。
+安装消费先复制安装树到新目录，清空 VULKAN_SDK 并禁止查找 Vulkan SDK，再独立 configure / link / run。消费项目链接整个应用工厂路径，但其运行检查不需要 GPU。MSVC Debug 和 MinGW Debug 另外通过 add_subdirectory 源码集成。将 MSVC 包交给 MinGW 消费时，配置按预期拒绝并给出匹配工具链提示。
 
-- 文字：两套 Debug 的 13 项测试全部通过，包含中文、组合附加符、ZWJ 字素删除、编辑历史、非法 UTF-8、字体回退与 IME 预编辑模型。两套 GPU smoke 绘制中英文并保持验证层错误为零。
-- MSVC 增量依赖：修复 CMake 将 UTF-8 中文 showIncludes 前缀经 CP936 错解码的问题，干净重建后 Ninja 已记录 Grid 等源文件的头依赖；不再使用零依赖的旧对象结果。
+MSVC Debug 的 `--idle-smoke` 在等待事件的约 5.5 秒内只提交一帧。无持续重绘。MinGW 可执行文件使用编译器对应运行库，避免 PATH 中其他工具的同名 DLL。中文 MSVC showIncludes 探测修复后确认 Ninja 保存了头文件依赖，已进行过干净重建。
 
-- 主题：两套 Debug 的 15 项测试全部通过，新增主题继承 / 覆盖和动画完成后停止调度检查。系统主题通知与原生标题栏外观接入 SDL / DWM，实际视觉检查随 Demo 执行。
+## 桌面操作结果
 
-- 控件：两套 Debug 的 21 项测试全部通过；新增按钮按下 / 释放、单选组、下拉键盘选择、滚动焦点可见性、标签页可见性与滑块范围检查。全部公共头独立编译通过。
+通过实际窗口操作观察：
 
-- 自绘窗口：两套 Debug 保持 21 项测试通过，GPU smoke 同时创建原生 / 自绘窗口，实际发送 WM_NCHITTEST 验证 HTMAXBUTTON，并执行窗口尺寸变化与交换链重建，验证层错误为零。
+- 默认原生 Gallery 的布局、中英文标签、浅 / 深主题切换。
+- TextBox 中英文输入、全选，以及 Microsoft Pinyin 的候选窗口、提交和 Escape 取消；候选窗口出现在光标附近。
+- 打开独立自绘窗口，标题区域与内容分离；最大化、恢复、右键系统菜单和关闭。关闭自绘窗口后原生窗口继续运行。
+- 原生窗口关闭和多窗口生存期。
 
-- Gallery：两套 Debug 通过独立脚本捕获退出码的 70 帧 smoke，覆盖原生 / 自绘双窗口、360 DIP 窄窗口、恢复大小、主题、混排文字、标签页与控件状态变化；验证层无 VUID 诊断。
+## 待验证
 
-## 尚未执行
+- Windows 10 22H2 实机 / 虚拟机运行。
+- 实际 OS 100% / 150% / 200% DPI、跨显示器 DPI 改变与 IME 候选窗位置。
+- 两种装饰的完整最小化、拖动、边缘缩放、双击标题最大化、贴靠矩阵。
+- Windows 11 Snap Layouts 悬停菜单实际出现与区域选择。代码和自动检查满足 HTMAXBUTTON / 窗口样式要求，本轮没有观察到 shell 悬停菜单，不能声明人工验收通过。
+- GitHub Actions 远端运行；当前仅配置工作流并本机解析脚本 / 工作流，未推送。
 
-双工具链完整构建、自动化测试、GPU 验证、中文 IME、DPI、跨显示器、两种标题栏与安装包消费验证。
-
-Windows 10 22H2 尚无独立运行结果。编译通过不代表运行验证通过。
+未执行的项目保留为验收缺口，不从编译或 smoke 结果推断通过。

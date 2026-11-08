@@ -106,3 +106,5 @@ if(YUKIRI_BUILD_TESTS)
 	add_library(YukiriHeaderChecks OBJECT ${headerSources})
 	target_link_libraries(YukiriHeaderChecks PRIVATE Yukiri::Yukiri)
 endif()
+
+include(cmake/Package.cmake)

@@ -1,0 +1,45 @@
+@PACKAGE_INIT@
+
+if(MSVC AND CMAKE_CXX_CL_SHOWINCLUDES_PREFIX MATCHES "^娉")
+	set(CMAKE_CL_SHOWINCLUDES_PREFIX "注意: 包含文件:  ")
+endif()
+
+if(TARGET Yukiri::Yukiri)
+	return()
+endif()
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "@YUKIRI_PACKAGE_COMPILER@")
+	set(Yukiri_FOUND FALSE)
+	set(Yukiri_NOT_FOUND_MESSAGE "This Yukiri package was built with @YUKIRI_PACKAGE_COMPILER@; use a matching toolchain package.")
+	return()
+endif()
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL @YUKIRI_PACKAGE_POINTER_SIZE@)
+	set(Yukiri_FOUND FALSE)
+	set(Yukiri_NOT_FOUND_MESSAGE "The Yukiri package architecture does not match the consumer.")
+	return()
+endif()
+if(CMAKE_BUILD_TYPE)
+	if((CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT "@YUKIRI_PACKAGE_BUILD_TYPE@" STREQUAL "Debug") OR
+		(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND "@YUKIRI_PACKAGE_BUILD_TYPE@" STREQUAL "Debug"))
+		set(Yukiri_FOUND FALSE)
+		set(Yukiri_NOT_FOUND_MESSAGE "Use a matching Debug or Release Yukiri package to avoid runtime ABI mismatches.")
+		return()
+	endif()
+endif()
+
+function(YukiriImportLibrary name filename)
+	add_library(${name} STATIC IMPORTED)
+	set_target_properties(${name} PROPERTIES IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/${filename}")
+endfunction()
+YukiriImportLibrary(Yukiri::PrivateSDL "$<TARGET_FILE_NAME:SDL3-static>")
+YukiriImportLibrary(Yukiri::PrivateVolk "$<TARGET_FILE_NAME:volk>")
+YukiriImportLibrary(Yukiri::PrivateHarfBuzz "$<TARGET_FILE_NAME:harfbuzz>")
+YukiriImportLibrary(Yukiri::PrivateFreeType "$<TARGET_FILE_NAME:freetype>")
+YukiriImportLibrary(Yukiri::PrivateUnibreak "$<TARGET_FILE_NAME:YukiriUnibreak>")
+YukiriImportLibrary(Yukiri::Yukiri "$<TARGET_FILE_NAME:Yukiri>")
+set_target_properties(Yukiri::Yukiri PROPERTIES
+	INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@"
+	INTERFACE_COMPILE_FEATURES cxx_std_23
+	IMPORTED_LINK_INTERFACE_LANGUAGES CXX
+	INTERFACE_LINK_LIBRARIES "Yukiri::PrivateSDL;Yukiri::PrivateVolk;Yukiri::PrivateHarfBuzz;Yukiri::PrivateFreeType;Yukiri::PrivateUnibreak;@YUKIRI_PACKAGE_SYSTEM_LIBRARIES@")
+set(Yukiri_VERSION "@PROJECT_VERSION@")
+check_required_components(Yukiri)

@@ -4,6 +4,8 @@
 
 | 优先级 | 事项 | 前置条件与验收方向 |
 |---|---|---|
+| P1 | 补齐桌面验收矩阵 | 100% / 150% / 200% DPI、跨屏、原生 / 自绘窗口完整交互与 Snap 悬停菜单；详见 Validation |
+| P1 | 远端 CI 首次运行 | 推送到 GitHub 后观察四套构建、测试与安装消费，当前仅本机验证 |
 | P1 | Linux：Wayland / X11 | 完成 Windows 架构，在原生 Linux 构建并验证 SDL、Vulkan、字体、剪贴板和输入法 |
 | P1 | Windows 10 独立运行验证 | Windows 10 22H2 实机或具有可用 Vulkan 驱动的虚拟机 |
 | P1 | 系统无障碍接口 | 控件语义稳定后提供 Windows UI Automation 与屏幕阅读器验证 |
