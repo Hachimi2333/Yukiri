@@ -27,7 +27,7 @@ MSVC presets 设置 VSLANG；另窄范围修复中文 showIncludes 的 CMake 编
 ./tools/VerifyPackage.ps1 -Preset msvc-debug -Source
 ```
 
-Demo 默认原生标题栏，可切换主题、打开其他窗口与自绘窗口。`--custom` 创建自绘主窗口，`--smoke` 运行自动 GPU 检查，`--idle-smoke` 验证空闲调度。设置 `YUKIRI_TRACE_FRAMES=1` 可在退出时打印窗口提交帧数。GPU 脚本检查超时、退出码与验证层日志，不加入默认 CTest。
+Demo 默认原生标题栏，主题下拉框旁的“深 / 浅”按钮一键切换当前实际主题；下拉框保留跟随系统。各窗口独立设置，新窗口继承创建来源的模式。`--custom` 创建自绘主窗口，`--smoke` 运行自动 GPU 检查，`--idle-smoke` 验证空闲调度。设置 `YUKIRI_TRACE_FRAMES=1` 可在退出时打印窗口提交帧数。GPU 脚本检查超时、退出码与验证层日志，不加入默认 CTest。
 
 ## 源码集成
 
@@ -59,3 +59,19 @@ target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 ## CI
 
 GitHub Actions 配置 MSVC / MinGW × Debug / Release，构建、CPU 测试、安装并验证移动后的包。SDK 安装脚本仅用于一次性 CI runner。工作流不依赖 GPU，不将桌面输入法 / DPI 检查计为 CI 覆盖。尚未执行远端工作流。
+
+## 性能检查
+
+```powershell
+$env:YUKIRI_FRAME_STATS = '1'
+./out/build/msvc-release/YukiriFrameBenchmark.exe 8
+./out/build/msvc-release/YukiriFrameBenchmark.exe 8 --scroll
+./out/build/msvc-release/YukiriFrameBenchmark.exe 8 --scroll --settle
+Remove-Item Env:YUKIRI_FRAME_STATS
+```
+
+第一项持续交替悬停，第二项在文本列表中连续反向滚动；均使用 SDL 内部事件，不移动系统鼠标。记录预热后的绘制 / 提交间隔、CPU、呈现调用和资源延后情况。scroll 模式另记录预热后的测量次数，用于检查滚动没有触发反复测量。--settle 在结束前停止输入，检查收稳后没有继续绘制；该模式至少运行 4 秒。
+
+`--idle-smoke` 通过外部非阻塞 Poll 采样约 5.4 秒；常规 Run 在完全空闲时直接等待事件。`Poll(false)` 不保证每次都完成呈现，消费方需持续驱动循环。
+
+MotionSettings 改变了公开类型布局，现有应用应使用匹配工具链重新编译并重新链接。

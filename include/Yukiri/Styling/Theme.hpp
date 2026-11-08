@@ -23,7 +23,7 @@ struct Theme
 	float m_Radius = 6;
 	float m_ControlHeight = 34;
 	float m_Spacing = 8;
-	MotionSettings m_Motion;
+	MotionSettings m_Motion{};
 	[[nodiscard]] static Theme Light() noexcept;
 	[[nodiscard]] static Theme Dark() noexcept;
 };

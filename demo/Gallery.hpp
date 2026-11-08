@@ -13,7 +13,13 @@ class Gallery : public Yukiri::ScrollView
 public:
 	Gallery(Yukiri::Application& application, Yukiri::Window& window);
 	void Exercise(int frame);
+	[[nodiscard]] bool IsThemeSynchronized() const;
 private:
+	void ApplyTheme(Yukiri::ThemeMode mode);
+	void ToggleTheme();
+	Yukiri::ComboBox* m_ThemeSelector = nullptr;
+	Yukiri::Button* m_ThemeButton = nullptr;
+	Yukiri::ToggleSwitch* m_Toggle = nullptr;
 	Yukiri::Application& m_Application;
 	Yukiri::Window& m_Window;
 	Yukiri::Label* m_Status = nullptr;

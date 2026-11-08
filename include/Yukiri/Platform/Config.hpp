@@ -12,7 +12,7 @@ struct ApplicationConfig
 {
 	std::string m_Name = "Yukiri Application";
 	bool m_EnableValidation = true;
-	MotionSettings m_Motion;
+	MotionSettings m_Motion{};
 };
 
 struct WindowConfig

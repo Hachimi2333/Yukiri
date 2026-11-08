@@ -39,10 +39,11 @@ int main(int argc, char** argv)
 		if (!second) { std::cerr << second.error().m_Message << '\n'; return 3; }
 		for (int frame = 0; frame < 70; ++frame)
 		{
-			static_cast<YukiriDemo::Gallery*>((*mainWindow)->GetContent())->Exercise(frame);
+			auto* gallery = static_cast<YukiriDemo::Gallery*>((*mainWindow)->GetContent());
+			gallery->Exercise(frame);
+			if (!gallery->IsThemeSynchronized() || (*second)->GetConfig().m_Theme != Yukiri::ThemeMode::Dark) return 12;
 			if (frame == 15) { auto size = (*mainWindow)->SetSize({360, 520}); if (!size) return 4; }
 			if (frame == 30) { auto size = (*mainWindow)->SetSize({1040, 740}); if (!size) return 5; }
-			if (frame == 45) (*mainWindow)->SetTheme(Yukiri::ThemeMode::Dark);
 			(*mainWindow)->Invalidate();
 			(*second)->Invalidate();
 			const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(10);

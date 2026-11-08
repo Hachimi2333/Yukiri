@@ -20,4 +20,4 @@ GPU fence 和交换链 acquire 使用非阻塞检查；未就绪时保留最新�
 
 设置 YUKIRI_FRAME_STATS=1，在窗口销毁时输出刷新率、首帧 CPU、预热 CPU / 呈现调用 / 提交间隔的分位数，以及资源延后时间与重试次数。前十帧作为预热，采样内存有界。提交和绘制间隔不是物理显示帧率。
 
-测试目标 YukiriFrameBenchmark [seconds] 以 SDL 内部事件持续交替悬停两个按钮；不移动系统鼠标。适合对比同一机器的帧节奏，不加入无 GPU 的 CTest。
+测试目标 YukiriFrameBenchmark [seconds] 以 SDL 内部事件持续交替悬停两个按钮；追加 --scroll 可持续反向滚动文本列表，并记录预热后的内容测量次数。追加 --settle 可检查停止输入后是否停止绘制。不移动系统鼠标。适合对比同一机器的帧节奏，不加入无 GPU 的 CTest。

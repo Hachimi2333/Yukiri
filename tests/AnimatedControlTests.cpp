@@ -97,6 +97,17 @@ TEST_CASE("Smooth scrolling accumulates and reverses without measuring content a
 	wheel.m_WheelY = -0.5f;
 	view->OnWheel(wheel);
 	REQUIRE(view->GetOffset().m_Y == 120);
+	view->SetSmoothScrolling(true);
+	Yukiri::KeyEvent home{Yukiri::Key::Home};
+	view->OnKeyDown(home);
+	REQUIRE(home.m_Handled);
+	REQUIRE(view->GetOffset().m_Y == 120);
+	tree.Tick(now + 3s);
+	REQUIRE(view->GetOffset().m_Y == 0);
+	Yukiri::KeyEvent end{Yukiri::Key::End};
+	view->OnKeyDown(end);
+	tree.Tick(now + 4s);
+	REQUIRE(view->GetOffset().m_Y == 200);
 	REQUIRE(measured->m_Measures == measures);
 }
 
@@ -235,7 +246,7 @@ TEST_CASE("Pointer focus does not reposition a tall clicked tab control", "[focu
 	Yukiri::Detail::WidgetTree tree;
 	auto root = std::make_unique<Yukiri::ScrollView>();
 	auto* view = root.get();
-	auto content = std::make_unique<Yukiri::StackPanel>(Yukiri::Orientation::Vertical, 0);
+	auto content = std::make_unique<Yukiri::StackPanel>(Yukiri::Orientation::Vertical, 0.0f);
 	content->AddChild<Yukiri::Widget>().SetHeight(120);
 	auto& tabs = content->AddChild<Yukiri::TabView>();
 	auto first = std::make_unique<Yukiri::Widget>();

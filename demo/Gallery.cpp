@@ -41,8 +41,15 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	auto& heading = root->AddChild<StackPanel>(Orientation::Vertical, 4.0f);
 	Heading(heading, "Yukiri", 32);
 	Heading(heading, "Modern desktop UI, thoughtfully simple.  /  简洁的现代桌面界面", 13);
-	auto& actions = root->AddChild<ResponsivePanel>(190.0f, 4, 8.0f);
-	auto& theme = actions.AddChild<ComboBox>(std::vector<std::string>{"Theme: System / 跟随系统", "Theme: Light / 浅色", "Theme: Dark / 深色"});
+	auto& actions = root->AddChild<ResponsivePanel>(230.0f, 4, 8.0f);
+	auto& themeGroup = actions.AddChild<Grid>();
+	themeGroup.SetColumns({GridLength::Star(), GridLength::Pixels(72)});
+	auto& theme = themeGroup.AddChild<ComboBox>(std::vector<std::string>{"System / 跟随系统", "Light / 浅色", "Dark / 深色"});
+	m_ThemeSelector = &theme;
+	auto& themeButton = themeGroup.AddChild<Button>("深 / 浅");
+	m_ThemeButton = &themeButton;
+	auto buttonCell = themeGroup.SetCell(themeButton, 0, 1);
+	(void)buttonCell;
 	auto themeIndex = theme.SetSelectedIndex(static_cast<int>(window.GetConfig().m_Theme));
 	(void)themeIndex;
 	auto& newWindow = actions.AddChild<Button>("New native window / 新窗口");
@@ -64,6 +71,7 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	Heading(selectionCard, "Selection / 选择", 18);
 	m_Check = &selectionCard.AddChild<CheckBox>("Enable notifications / 启用通知", true);
 	auto& toggle = selectionCard.AddChild<ToggleSwitch>("Preview option / 预览选项", true);
+	m_Toggle = &toggle;
 	auto& radioA = selectionCard.AddChild<RadioButton>("Option A / 选项 A", "Preview");
 	auto& radioB = selectionCard.AddChild<RadioButton>("Option B / 选项 B", "Preview");
 	radioA.SetChecked(true);
@@ -141,7 +149,8 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	Keep(m_Choice->m_SelectionChanged.Connect([this](int) { m_Status->SetText("Selected: " + std::string(m_Choice->GetSelectedText())); }));
 	Keep(m_Editor->m_TextChanged.Connect([this](std::string text) { m_Status->SetText("Text: " + text); }));
 	Keep(m_Editor->m_Submitted.Connect([this] { m_Status->SetText("Text submitted / 文本已提交: " + m_Editor->GetText()); }));
-	Keep(theme.m_SelectionChanged.Connect([this](int index) { m_Window.SetTheme(static_cast<ThemeMode>(index)); }));
+	Keep(theme.m_SelectionChanged.Connect([this](int index) { ApplyTheme(static_cast<ThemeMode>(index)); }));
+	Keep(themeButton.m_Clicked.Connect([this] { ToggleTheme(); }));
 	Keep(m_Tabs->m_SelectionChanged.Connect([this](std::size_t) { SetOffset({0, 0}); }));
 	Keep(newWindow.m_Clicked.Connect([this]
 	{
@@ -164,12 +173,48 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	}));
 }
 
+void Gallery::ApplyTheme(ThemeMode mode)
+{
+	if (m_Window.GetConfig().m_Theme != mode) m_Window.SetTheme(mode);
+	auto selected = m_ThemeSelector->SetSelectedIndex(static_cast<int>(mode));
+	if (!selected) m_Status->SetText(selected.error().m_Message);
+}
+void Gallery::ToggleTheme()
+{
+	// Resolve the displayed palette so System mode toggles to the opposite appearance.
+	const auto color = m_Window.GetTheme().m_Background;
+	const bool dark = color.m_R * 0.2126f + color.m_G * 0.7152f + color.m_B * 0.0722f < 0.5f;
+	ApplyTheme(dark ? ThemeMode::Light : ThemeMode::Dark);
+}
+bool Gallery::IsThemeSynchronized() const
+{
+	return m_ThemeSelector->GetSelectedIndex() == static_cast<int>(m_Window.GetConfig().m_Theme);
+}
 void Gallery::Exercise(int frame)
 {
 	m_Slider->SetValue(static_cast<float>(frame % 100) / 100);
+	if (frame == 2 || frame == 3 || frame == 46)
+	{
+		KeyEvent enter{Key::Enter};
+		m_ThemeButton->OnKeyDown(enter);
+	}
+	if (frame == 4) { auto selected = m_ThemeSelector->SetSelectedIndex(0); (void)selected; }
 	if (frame == 8) m_Editor->SetText("Yukiri 中文 smoke");
-	if (frame == 12) m_InnerScroll->SetOffset({0, 80});
+	if (frame == 11 || frame == 14) { m_Check->SetChecked(frame == 14); m_Toggle->SetChecked(frame == 14); }
+	if (frame == 12 || frame == 13)
+	{
+		const auto bounds = m_InnerScroll->GetBounds();
+		PointerEvent wheel{{bounds.m_X + 10, bounds.m_Y + 10}, PointerButton::None, {}, 0, frame == 12 ? -2.0f : 1.0f};
+		m_InnerScroll->OnWheel(wheel);
+	}
+	if (frame >= 16 && frame <= 19)
+	{
+		const auto bounds = m_Choice->GetBounds();
+		PointerEvent click{{bounds.m_X + 10, bounds.m_Y + 10}, PointerButton::Left};
+		m_Choice->OnPointerDown(click);
+	}
 	if (frame == 20) { auto selected = m_Tabs->SetSelectedIndex(1); (void)selected; }
 	if (frame == 40) { auto selected = m_Tabs->SetSelectedIndex(0); (void)selected; }
+	if (frame == 45) ApplyTheme(ThemeMode::Dark);
 }
 }
