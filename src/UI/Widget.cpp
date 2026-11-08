@@ -178,7 +178,16 @@ void Widget::OnArrange(Rect content) { for (auto* child : Children()) child->Arr
 
 void Widget::Render(Canvas& canvas)
 {
-	if (!m_Visible || m_Bounds.Intersect(canvas.m_State.m_Clips.back()).Empty()) return;
+	if (!m_Visible || m_Bounds.Empty()) return;
+	if (m_Bounds.Intersect(canvas.m_State.m_Clips.back()).Empty())
+	{
+		bool updatesTextInput = false;
+		auto* focus = m_Tree ? m_Tree->m_Focus : nullptr;
+		if (focus && focus->AcceptsTextInput())
+			for (auto* ancestor = focus; ancestor; ancestor = ancestor->GetParent())
+				if (ancestor == this) { updatesTextInput = true; break; }
+		if (!updatesTextInput) return;
+	}
 	canvas.Save();
 	canvas.SetOffset({m_Bounds.m_X, m_Bounds.m_Y});
 	canvas.PushClip(GetLocalBounds());

@@ -2,6 +2,11 @@
 #include <Yukiri/Platform/Window.hpp>
 #include <Yukiri/UI/Widget.hpp>
 #include <Yukiri/Render/Canvas.hpp>
+#include <Yukiri/Controls/TextBox.hpp>
+#include <Yukiri/Controls/ScrollView.hpp>
+#include <Yukiri/Layout/StackPanel.hpp>
+#include <chrono>
+#include <cmath>
 
 #include <iostream>
 #if defined(_WIN32)
@@ -130,6 +135,45 @@ int main()
 			return 5;
 		}
 	}
+#if defined(_WIN32)
+	auto scroll = std::make_unique<Yukiri::ScrollView>();
+	auto* scrolling = scroll.get();
+	auto contents = std::make_unique<Yukiri::StackPanel>();
+	auto& editor = contents->AddChild<Yukiri::TextBox>("IME caret probe");
+	contents->AddChild<Yukiri::Widget>().SetHeight(1000);
+	scrolling->SetContent(std::move(contents));
+	(*first)->SetContent(std::move(scroll));
+	editor.RequestFocus();
+	auto** imeWindows = SDL_GetWindows(&windowCount);
+	SDL_Window* imeWindow = nullptr;
+	for (int i = 0; i < windowCount; ++i)
+		if (!(SDL_GetWindowFlags(imeWindows[i]) & SDL_WINDOW_BORDERLESS)) imeWindow = imeWindows[i];
+	SDL_free(imeWindows);
+	if (!imeWindow) return 12;
+	auto pumpUntil = [&](auto predicate)
+	{
+		const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+		do
+		{
+			auto polled = application.Poll(false);
+			if (!polled) return false;
+			if (predicate()) return true;
+			SDL_Delay(1);
+		} while (std::chrono::steady_clock::now() < deadline);
+		return false;
+	};
+	SDL_Rect before{};
+	int cursor = 0;
+	if (!pumpUntil([&] { return SDL_GetTextInputArea(imeWindow, &before, &cursor) && before.h > 1; })) return 13;
+	scrolling->SetOffset({0, 200});
+	const int expectedY = before.y - static_cast<int>(std::lround(200 * (*first)->GetScale()));
+	if (!pumpUntil([&]
+	{
+		SDL_Rect after{};
+		return SDL_GetTextInputArea(imeWindow, &after, &cursor) && std::abs(after.y - expectedY) <= 1;
+	})) return 14;
+	std::cout << "Clipped text input caret follows scroll translation.\n";
+#endif
 	(*first)->Close();
 	auto remaining = application.Poll(false);
 	if (!remaining || !*remaining || !firstClosed || !reentryRejected || secondClosed)
