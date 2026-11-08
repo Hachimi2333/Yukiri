@@ -66,6 +66,9 @@ int main()
 		return 1;
 	}
 	auto& application = **result;
+#if defined(_WIN32)
+	if (std::string_view(SDL_GetHint(SDL_HINT_IME_IMPLEMENTED_UI)) != "composition") return 15;
+#endif
 	if (Yukiri::Application::Create())
 		return 2;
 	Yukiri::WindowConfig invalid;
@@ -165,6 +168,39 @@ int main()
 	SDL_Rect before{};
 	int cursor = 0;
 	if (!pumpUntil([&] { return SDL_GetTextInputArea(imeWindow, &before, &cursor) && before.h > 1; })) return 13;
+	const auto originalText = editor.GetText();
+	SDL_Event composition{};
+	composition.type = SDL_EVENT_TEXT_EDITING;
+	composition.edit.windowID = SDL_GetWindowID(imeWindow);
+	composition.edit.text = "ni'hao";
+	composition.edit.start = 3;
+	composition.edit.length = 3;
+	if (!SDL_PushEvent(&composition)) return 16;
+	const int expectedCaret = before.x + static_cast<int>(std::lround((*first)->GetTextCaretX(
+		originalText + "ni'hao", originalText.size() + 3, editor.GetFontSize()) * (*first)->GetScale())) -
+		static_cast<int>(std::lround((*first)->GetTextCaretX(originalText, originalText.size(), editor.GetFontSize()) * (*first)->GetScale()));
+	if (!pumpUntil([&]
+	{
+		SDL_Rect area{};
+		return SDL_GetTextInputArea(imeWindow, &area, &cursor) && std::abs(area.x - expectedCaret) <= 2;
+	}) || editor.GetText() != originalText) return 17;
+	std::cout << "IME preedit event updates the displayed caret without committing text.\n";
+	editor.SetText(std::string(160, 'x'));
+	composition.edit.start = 6;
+	composition.edit.length = 0;
+	if (!SDL_PushEvent(&composition)) return 18;
+	if (!pumpUntil([&]
+	{
+		SDL_Rect area{};
+		const float right = editor.GetBounds().Right() * (*first)->GetScale();
+		return SDL_GetTextInputArea(imeWindow, &area, &cursor) && area.x > right - 30 * (*first)->GetScale() && area.x < right;
+	})) return 19;
+	editor.SetText(originalText);
+	if (!pumpUntil([&]
+	{
+		SDL_Rect area{};
+		return SDL_GetTextInputArea(imeWindow, &area, &cursor) && std::abs(area.x - before.x) <= 2;
+	})) return 20;
 	scrolling->SetOffset({0, 200});
 	const int expectedY = before.y - static_cast<int>(std::lround(200 * (*first)->GetScale()));
 	if (!pumpUntil([&]

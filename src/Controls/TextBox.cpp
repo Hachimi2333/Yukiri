@@ -1,7 +1,7 @@
 #include <Yukiri/Controls/TextBox.hpp>
 #include <Yukiri/Platform/Window.hpp>
 #include <Yukiri/Render/Canvas.hpp>
-#include "Text/TextEditor.hpp"
+#include "Text/TextComposition.hpp"
 #include <chrono>
 
 namespace Yukiri
@@ -13,20 +13,12 @@ std::uint64_t Milliseconds()
 	return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
 		std::chrono::steady_clock::now().time_since_epoch()).count());
 }
-std::size_t CharacterOffset(std::string_view text, int characters)
-{
-	const auto points = Detail::DecodeUtf8(text);
-	if (characters <= 0) return 0;
-	return static_cast<std::size_t>(characters) >= points.size() ? text.size() : points[static_cast<std::size_t>(characters)].m_Start;
-}
 }
 struct TextBox::Impl
 {
 	Detail::TextEditor m_Editor;
 	std::string m_Placeholder;
-	std::string m_Composition;
-	std::size_t m_CompositionCaret = 0;
-	std::size_t m_CompositionLength = 0;
+	Detail::TextComposition m_Composition;
 	bool m_ReadOnly = false;
 	bool m_Dragging = false;
 	float m_Scroll = 0;
@@ -42,9 +34,10 @@ TextBox::~TextBox() { if (HasFocus() && GetWindow()) GetWindow()->StopTextInput(
 const std::string& TextBox::GetText() const noexcept { return m_Impl->m_Editor.m_Text; }
 void TextBox::SetText(std::string_view text)
 {
+	if (m_Impl->m_Composition.IsActive()) CancelComposition();
 	if (text == GetText()) return;
 	m_Impl->m_Editor.SetText(text);
-	m_Impl->m_Composition.clear();
+	m_Impl->m_Composition.Clear();
 	RefreshCaret();
 	m_TextChanged.Emit(GetText());
 }
@@ -56,7 +49,7 @@ void TextBox::SetReadOnly(bool readOnly)
 	else if (HasFocus() && GetWindow()) GetWindow()->StartTextInput(GetBounds());
 	InvalidatePaint();
 }
-void TextBox::SelectAll() { m_Impl->m_Editor.SelectAll(); RefreshCaret(); }
+void TextBox::SelectAll() { if (m_Impl->m_Composition.IsActive()) CancelComposition(); m_Impl->m_Editor.SelectAll(); RefreshCaret(); }
 bool TextBox::AcceptsTextInput() const noexcept { return !m_Impl->m_ReadOnly; }
 Size TextBox::OnMeasure(Size) { return {220, std::max(GetTheme().m_ControlHeight, GetFontSize() * 1.5f + 12)}; }
 void TextBox::RefreshCaret()
@@ -66,7 +59,7 @@ void TextBox::RefreshCaret()
 }
 void TextBox::CancelComposition()
 {
-	m_Impl->m_Composition.clear();
+	m_Impl->m_Composition.Clear();
 	if (GetWindow() && HasFocus())
 	{
 		GetWindow()->StopTextInput();
@@ -81,7 +74,7 @@ std::size_t TextBox::OffsetAt(Point point) const
 void TextBox::OnPointerDown(PointerEvent& event)
 {
 	if (event.m_Button != PointerButton::Left) return;
-	if (!m_Impl->m_Composition.empty()) CancelComposition();
+	if (m_Impl->m_Composition.IsActive()) CancelComposition();
 	const auto offset = OffsetAt(event.m_Position);
 	m_Impl->m_Editor.Select(event.m_Modifiers.m_Shift ? m_Impl->m_Editor.m_Anchor : offset, offset);
 	m_Impl->m_Dragging = true;
@@ -118,22 +111,21 @@ void TextBox::OnFocusChanged(bool focused)
 void TextBox::OnTextEditing(std::string_view text, int start, int length)
 {
 	if (m_Impl->m_ReadOnly) return;
-	m_Impl->m_Composition = Detail::SanitizeUtf8(text, true);
-	m_Impl->m_CompositionCaret = CharacterOffset(m_Impl->m_Composition, start);
-	m_Impl->m_CompositionLength = CharacterOffset(m_Impl->m_Composition, start + std::max(0, length)) - m_Impl->m_CompositionCaret;
+	m_Impl->m_Composition.Update(text, start, length);
 	RefreshCaret();
 }
 void TextBox::OnTextInput(std::string_view text)
 {
 	if (m_Impl->m_ReadOnly) return;
-	m_Impl->m_Composition.clear();
+	m_Impl->m_Composition.Clear();
+	const auto previous = GetText();
 	m_Impl->m_Editor.Insert(text);
 	RefreshCaret();
-	m_TextChanged.Emit(GetText());
+	if (previous != GetText()) m_TextChanged.Emit(GetText());
 }
 void TextBox::OnKeyDown(KeyEvent& event)
 {
-	if (!m_Impl->m_Composition.empty())
+	if (m_Impl->m_Composition.IsActive())
 	{
 		if (event.m_Key == Key::Escape) CancelComposition();
 		event.m_Handled = true;
@@ -184,15 +176,9 @@ void TextBox::OnPaint(Canvas& canvas)
 	const auto& theme = GetTheme();
 	canvas.FillRectangle(GetLocalBounds(), InteractiveColor(GetStyle().m_Background.value_or(theme.m_Surface), theme.m_Hover, theme.m_Pressed, false), GetRadius());
 	canvas.StrokeRectangle(GetLocalBounds(), IsFocusVisible() ? theme.m_Accent : GetStyle().m_Border.value_or(theme.m_Border), IsFocusVisible() ? 1.5f : 1, GetRadius());
-	auto& editor = m_Impl->m_Editor;
-	std::string display = editor.m_Text;
-	std::size_t caret = editor.m_Caret;
-	const bool composing = !m_Impl->m_Composition.empty();
-	if (composing)
-	{
-		display = editor.m_Text.substr(0, editor.SelectionStart()) + m_Impl->m_Composition + editor.m_Text.substr(editor.SelectionEnd());
-		caret = editor.SelectionStart() + m_Impl->m_CompositionCaret;
-	}
+	const auto displayState = m_Impl->m_Composition.BuildDisplay(m_Impl->m_Editor);
+	const auto& display = displayState.m_Text;
+	const auto caret = displayState.m_Caret;
 	const float textHeight = canvas.MeasureText(display, GetFontSize()).m_Height;
 	const float top = (size.m_Height - textHeight) * 0.5f;
 	const float caretX = GetWindow() ? GetWindow()->GetTextCaretX(display, caret, GetFontSize()) : 0;
@@ -202,18 +188,18 @@ void TextBox::OnPaint(Canvas& canvas)
 	m_Impl->m_Scroll = std::clamp(m_Impl->m_Scroll, 0.0f, std::max(0.0f, canvas.MeasureText(display, GetFontSize()).m_Width - viewport));
 	const float left = 10 - m_Impl->m_Scroll;
 	canvas.PushClip({8, 4, std::max(0.0f, size.m_Width - 16), std::max(0.0f, size.m_Height - 8)});
-	if (!composing && editor.m_Caret != editor.m_Anchor && GetWindow())
+	if (displayState.m_SelectionStart != displayState.m_SelectionEnd && GetWindow())
 	{
-		const float start = GetWindow()->GetTextCaretX(display, editor.SelectionStart(), GetFontSize());
-		const float end = GetWindow()->GetTextCaretX(display, editor.SelectionEnd(), GetFontSize());
+		const float start = GetWindow()->GetTextCaretX(display, displayState.m_SelectionStart, GetFontSize());
+		const float end = GetWindow()->GetTextCaretX(display, displayState.m_SelectionEnd, GetFontSize());
 		canvas.FillRectangle({left + start, top, end - start, textHeight}, theme.m_Selection, 2);
 	}
 	if (display.empty() && !HasFocus()) canvas.DrawText(m_Impl->m_Placeholder, {10, top}, theme.m_MutedText, GetFontSize());
 	else canvas.DrawText(display, {left, top}, GetForeground(), GetFontSize());
-	if (composing && GetWindow())
+	if (displayState.m_Composing && GetWindow())
 	{
-		const float start = GetWindow()->GetTextCaretX(display, editor.SelectionStart(), GetFontSize());
-		const float end = GetWindow()->GetTextCaretX(display, editor.SelectionStart() + m_Impl->m_Composition.size(), GetFontSize());
+		const float start = GetWindow()->GetTextCaretX(display, displayState.m_CompositionStart, GetFontSize());
+		const float end = GetWindow()->GetTextCaretX(display, displayState.m_CompositionEnd, GetFontSize());
 		canvas.FillRectangle({left + start, top + textHeight - 1, end - start, 1}, theme.m_Accent);
 	}
 	if (HasFocus() && (Milliseconds() - m_Impl->m_LastInteraction) / 500 % 2 == 0)

@@ -1,12 +1,93 @@
 #include "Platform/FontDiscovery.hpp"
 #include "Text/TextEditor.hpp"
+#include "Text/TextComposition.hpp"
 #include "Text/TextEngine.hpp"
 #include "UI/WidgetTree.hpp"
 #include <Yukiri/Controls/TextBox.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 
 using namespace std::string_literals;
+
+TEST_CASE("Preedit display replaces selection without mutating committed text", "[text][ime]")
+{
+	Yukiri::Detail::TextEditor editor;
+	editor.SetText("A原文Z");
+	editor.Select(1, 7);
+	Yukiri::Detail::TextComposition composition;
+	composition.Update("ni", 2, 0);
+	REQUIRE(composition.BuildDisplay(editor).m_Text == "AniZ");
+	composition.Update("ni'hao", 3, 3);
+	const auto display = composition.BuildDisplay(editor);
+	REQUIRE(display.m_Text == "Ani'haoZ");
+	REQUIRE(display.m_Caret == 4);
+	REQUIRE(display.m_SelectionStart == 4);
+	REQUIRE(display.m_SelectionEnd == 7);
+	REQUIRE(display.m_CompositionStart == 1);
+	REQUIRE(display.m_CompositionEnd == 7);
+	REQUIRE(display.m_Composing);
+	REQUIRE(editor.m_Text == "A原文Z");
+	composition.Clear();
+	REQUIRE(composition.BuildDisplay(editor).m_Text == editor.m_Text);
+	REQUIRE_FALSE(composition.BuildDisplay(editor).m_Composing);
+}
+
+TEST_CASE("Composition offsets clamp safely at UTF-8 character boundaries", "[text][ime]")
+{
+	Yukiri::Detail::TextEditor editor;
+	Yukiri::Detail::TextComposition composition;
+	composition.Update("你👩好", 1, std::numeric_limits<int>::max());
+	auto display = composition.BuildDisplay(editor);
+	REQUIRE(display.m_Caret == 3);
+	REQUIRE(display.m_SelectionEnd == 10);
+	composition.Update("你👩好", std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
+	display = composition.BuildDisplay(editor);
+	REQUIRE(display.m_Caret == display.m_Text.size());
+	REQUIRE(display.m_SelectionEnd == display.m_Text.size());
+	composition.Update("ni'hao", -1, -1);
+	REQUIRE(composition.BuildDisplay(editor).m_Caret == 6);
+	composition.Update("n\xFF\ni"s, 2, 1);
+	display = composition.BuildDisplay(editor);
+	REQUIRE(display.m_Text == "n\xEF\xBF\xBD i");
+	REQUIRE(display.m_Caret == 4);
+	REQUIRE(display.m_SelectionEnd == 5);
+}
+
+TEST_CASE("IME notifications and cancellation preserve editing history", "[text][ime]")
+{
+	Yukiri::Detail::WidgetTree tree;
+	auto box = std::make_unique<Yukiri::TextBox>("original");
+	auto* editor = box.get();
+	tree.SetRoot(std::move(box));
+	tree.SetFocus(editor);
+	int changes = 0;
+	auto connection = editor->m_TextChanged.Connect([&](std::string) { ++changes; });
+	editor->SelectAll();
+	tree.TextEditing("ni", 2, 0);
+	tree.TextEditing("ni'hao", 6, 0);
+	REQUIRE(changes == 0);
+	tree.TextInput("你好");
+	REQUIRE(editor->GetText() == "你好");
+	REQUIRE(changes == 1);
+	tree.KeyDown({Yukiri::Key::Z, {false, true, false}});
+	REQUIRE(editor->GetText() == "original");
+	REQUIRE(changes == 2);
+	for (int operation = 0; operation < 4; ++operation)
+	{
+		tree.PointerDown({{1, 1}, Yukiri::PointerButton::Left});
+		tree.SetFocus(editor);
+		tree.TextEditing("cancel", 6, 0);
+		if (operation == 0) editor->SetText(editor->GetText());
+		if (operation == 1) tree.KeyDown({Yukiri::Key::Escape});
+		if (operation == 2) { editor->SetReadOnly(true); editor->SetReadOnly(false); }
+		if (operation == 3) { tree.LostFocus(); tree.SetFocus(editor); }
+		tree.KeyDown({Yukiri::Key::Tab});
+		REQUIRE(editor->IsFocusVisible());
+		REQUIRE(editor->GetText() == "original");
+		REQUIRE(changes == 2);
+	}
+}
 
 TEST_CASE("Grapheme editing preserves CJK combining characters and joined emoji", "[text]")
 {

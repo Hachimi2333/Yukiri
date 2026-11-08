@@ -68,3 +68,5 @@ GPU smoke 覆盖原生 / 自绘多窗口、圆角 / 边框 / 透明 / 裁剪 / �
 ## 焦点 / 预编辑 / 默认装饰修正（2026-11-08）
 
 焦点阶段：MSVC Debug 与 MinGW Debug 各 43 / 43 CPU 测试通过，MSVC Debug GPU 平台与 Gallery smoke 通过且验证错误为零。新增覆盖输入模式切换、同一控件重绘、下拉层点击、窗口隔离、销毁清理、选择类区域和 Tab 标题滚入视口；完整四配置矩阵在本轮最终记录补齐。
+
+输入法阶段：MSVC Debug 46 / 46 CPU 测试通过；GPU smoke 验证 SDL composition 声明、预编辑事件的实际光标位移、长文本水平滚动和取消后恢复，随后验证裁剪外滚动 200 DIP 的候选位置。原生候选 UI 保留，Vulkan 验证错误为零；这些结果不代表已经重新人工输入 Microsoft Pinyin。
