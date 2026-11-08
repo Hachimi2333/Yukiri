@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(cmake/Dependencies.cmake)
 
-add_library(Yukiri STATIC src/Core/Version.cpp)
+add_library(Yukiri STATIC src/Core/Version.cpp src/Platform/Application.cpp src/Platform/Window.cpp)
 add_library(Yukiri::Yukiri ALIAS Yukiri)
 target_compile_features(Yukiri PUBLIC cxx_std_23)
 target_include_directories(Yukiri PUBLIC
@@ -34,4 +34,6 @@ endif()
 if(YUKIRI_BUILD_TESTS)
 	enable_testing()
 	include(CTest)
+	add_executable(YukiriPlatformSmoke tests/PlatformSmoke.cpp)
+	target_link_libraries(YukiriPlatformSmoke PRIVATE Yukiri::Yukiri)
 endif()

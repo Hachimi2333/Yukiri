@@ -15,6 +15,8 @@
 
 - 构建骨架：MSVC Debug / MinGW Debug 从子模块源码完成静态依赖与 Yukiri 构建。
 
+- 平台层：MSVC Debug / MinGW Debug 均通过双窗口 smoke；覆盖重复应用、非法尺寸、关闭单窗口和退出。此时尚未接入 GPU 绘制。
+
 ## 尚未执行
 
 双工具链完整构建、自动化测试、GPU 验证、中文 IME、DPI、跨显示器、两种标题栏与安装包消费验证。
