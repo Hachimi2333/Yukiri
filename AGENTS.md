@@ -21,6 +21,7 @@
 ## Build and verification
 
 - Use CMake >= 3.28 and Ninja. Keep MSVC / MinGW and Debug / Release build trees separate.
+- Use the local build, GPU smoke, and package verification tools. GitHub Actions is intentionally not configured.
 - Apply strict warnings only to Yukiri code, not dependencies. Do not propagate project warning flags into consumers.
 - Keep presentation synchronized with FIFO and per-window refresh deadlines; never add a fixed 16ms wait after presentation. Avoid queue-idle waits in interactive uploads.
 - Keep logical input focus separate from keyboard focus visibility. Pointer presses hide focus indicators; Tab navigation reveals them. Custom focus bounds use widget-local coordinates and must avoid content overlap.

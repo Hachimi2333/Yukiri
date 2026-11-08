@@ -56,9 +56,9 @@ target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 
 `VerifyPackage.ps1` 复制安装目录后验证独立消费；`-Source` 验证 add_subdirectory。实际执行记录见 [Validation](Validation.md)。
 
-## CI
+## 本机验证
 
-GitHub Actions 配置 MSVC / MinGW × Debug / Release，构建、CPU 测试、安装并验证移动后的包。SDK 安装脚本仅用于一次性 CI runner。工作流不依赖 GPU，不将桌面输入法 / DPI 检查计为 CI 覆盖。尚未执行远端工作流。
+项目不提供 GitHub Actions 工作流。使用 Build.ps1、GpuSmoke.ps1 和 VerifyPackage.ps1 在本机分别完成构建、CPU 测试、GPU 检查和安装消费；桌面输入法 / DPI 检查单独记录。
 
 ## 性能检查
 

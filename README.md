@@ -19,6 +19,6 @@ git submodule update --init --recursive
 - [项目状态](docs/Status.md) 与 [实际验证记录](docs/Validation.md)
 - [开发规范](AGENTS.md) 与 [后续规划](FUTURE.md)
 
-Windows 11 已完成本机验证；Windows 10、更多 DPI / 跨屏场景和远端 CI 尚待验证。详见验证记录。
+Windows 11 已完成本机验证；Windows 10、更多 DPI / 跨屏场景尚待验证。详见验证记录。
 
 许可证：[MIT](LICENSE)。第三方组件遵循各自许可证，安装包附带相关声明。
