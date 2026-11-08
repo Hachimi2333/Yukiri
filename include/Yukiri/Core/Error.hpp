@@ -9,6 +9,7 @@ enum class ErrorCode
 {
 	InvalidArgument,
 	PlatformInitialization,
+	PlatformOperation,
 	WindowCreation,
 	VulkanUnavailable,
 	UnsupportedDevice,

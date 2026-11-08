@@ -2,6 +2,8 @@
 #include "WindowState.hpp"
 #include <Yukiri/Render/Canvas.hpp>
 #include "Appearance.hpp"
+#include <cmath>
+#include <limits>
 
 namespace Yukiri
 {
@@ -12,13 +14,17 @@ Window::Window(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl))
 	m_Impl->m_Tree.m_EndTextInput = [this] { StopTextInput(); };
 	m_Impl->m_Tree.m_PointerCapture = [](bool capture) { SDL_CaptureMouse(capture); };
 	m_Impl->m_Tree.m_MeasureText = [this](std::string_view text, float size) { return MeasureText(text, size); };
+	m_Impl->m_Cursors = {SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT), SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER),
+		SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_TEXT)};
 	SetTheme(m_Impl->m_Config.m_Theme);
 }
 
 Window::~Window()
 {
 	m_Impl->m_Tree.SetRoot(nullptr);
+	m_Impl->m_Chrome.reset();
 	m_Impl->m_Renderer.reset();
+	for (auto* cursor : m_Impl->m_Cursors) if (cursor) SDL_DestroyCursor(cursor);
 	if (m_Impl->m_Native)
 		SDL_DestroyWindow(m_Impl->m_Native);
 }
@@ -61,7 +67,7 @@ void Window::SetTheme(ThemeMode mode)
 Result<std::string> Window::GetClipboard() const
 {
 	char* value = SDL_GetClipboardText();
-	if (!value) return std::unexpected(Error{ErrorCode::ResourceLoading, SDL_GetError()});
+	if (!value) return std::unexpected(Error{ErrorCode::PlatformOperation, SDL_GetError()});
 	std::string text(value);
 	SDL_free(value);
 	return text;
@@ -69,7 +75,7 @@ Result<std::string> Window::GetClipboard() const
 Result<void> Window::SetClipboard(std::string_view text)
 {
 	const std::string owned(text);
-	if (!SDL_SetClipboardText(owned.c_str())) return std::unexpected(Error{ErrorCode::ResourceLoading, SDL_GetError()});
+	if (!SDL_SetClipboardText(owned.c_str())) return std::unexpected(Error{ErrorCode::PlatformOperation, SDL_GetError()});
 	return {};
 }
 void Window::StartTextInput(Rect caret)
@@ -81,6 +87,27 @@ void Window::StartTextInput(Rect caret)
 	SDL_SetTextInputArea(m_Impl->m_Native, &rectangle, 0);
 }
 void Window::StopTextInput() { SDL_StopTextInput(m_Impl->m_Native); }
+namespace
+{
+Result<void> PlatformOperation(bool success)
+{
+	if (!success) return std::unexpected(Error{ErrorCode::PlatformOperation, SDL_GetError()});
+	return {};
+}
+}
+Result<void> Window::SetSize(Size size)
+{
+	const double width = static_cast<double>(size.m_Width) * GetScale();
+	const double height = static_cast<double>(size.m_Height) * GetScale();
+	if (!std::isfinite(width) || !std::isfinite(height) || width <= 0 || height <= 0 ||
+		width > std::numeric_limits<int>::max() || height > std::numeric_limits<int>::max())
+		return std::unexpected(Error{ErrorCode::InvalidArgument, "Requested window size is invalid."});
+	Invalidate();
+	return PlatformOperation(SDL_SetWindowSize(m_Impl->m_Native, static_cast<int>(std::lround(width)), static_cast<int>(std::lround(height))));
+}
+Result<void> Window::Minimize() { return PlatformOperation(SDL_MinimizeWindow(m_Impl->m_Native)); }
+Result<void> Window::Maximize() { return PlatformOperation(SDL_MaximizeWindow(m_Impl->m_Native)); }
+Result<void> Window::Restore() { return PlatformOperation(SDL_RestoreWindow(m_Impl->m_Native)); }
 
 Result<void> Window::Update()
 {
@@ -92,9 +119,11 @@ Result<void> Window::Update()
 	if (!m_Impl->m_Dirty && !m_Impl->m_Tree.m_Dirty) return {};
 	Detail::DrawList list;
 	const auto size = GetSize();
-	m_Impl->m_Tree.Layout(size);
+	const float titleHeight = m_Impl->m_Chrome ? m_Impl->m_Chrome->GetHeight() : 0;
+	m_Impl->m_Tree.Layout({size.m_Width, std::max(0.0f, size.m_Height - titleHeight)}, {0, titleHeight});
 	Canvas canvas(list, size, m_Impl->m_Text, GetScale());
 	m_Impl->m_Tree.Paint(canvas);
+	if (m_Impl->m_Chrome) m_Impl->m_Chrome->Paint(canvas);
 	if (list.m_Error) return std::unexpected(*list.m_Error);
 	auto result = m_Impl->m_Renderer->Draw(list, size, GetTheme().m_Background);
 	if (!result) return result;

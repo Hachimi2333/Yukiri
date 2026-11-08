@@ -10,7 +10,7 @@ class WidgetTree
 public:
 	~WidgetTree();
 	void SetRoot(std::unique_ptr<Widget> root);
-	void Layout(Size size);
+	void Layout(Size size, Point origin = {});
 	void Paint(Canvas& canvas);
 	void PointerDown(PointerEvent event);
 	void PointerUp(PointerEvent event);
@@ -54,5 +54,6 @@ private:
 	std::function<bool(PointerEvent&)> m_PopupPointer;
 	std::function<bool(KeyEvent&)> m_PopupKey;
 	Size m_LastSize{-1, -1};
+	Point m_LastOrigin;
 };
 }

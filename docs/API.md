@@ -25,3 +25,9 @@ Button 提供 m_Clicked，CheckBox / ToggleSwitch / RadioButton 提供 m_Checked
 ComboBox 是不可编辑下拉框，SetSelectedIndex 返回范围检查结果；支持方向键、Home / End、Enter 和 Escape，内容在窗口内弹出层绘制。TabView 使用 AddTab 管理页面，切换后隐藏非活动子树。
 
 ScrollView 使用 SetContent，默认纵向滚动，可启用横向滚动；支持滚轮、拖动滚动条和焦点控件自动进入视口。复杂控件的结构内容应通过 SetContent / AddTab 管理。
+
+## 窗口装饰
+
+WindowConfig::m_Decoration 在创建时选择 Native / Custom，默认 Native。自绘模式绘制标题与标准系统按钮，客户根控件在标题栏下排列。窗口支持 SetSize、Minimize、Maximize 和 Restore，可失败操作返回 expected。
+
+公共接口不用包含 Windows.h。与 Win32 混用时使用 CreateWindowW / DrawTextW 等显式名称；Yukiri 头文件会移除同名宏别名，避免覆盖 C++ 成员名称。

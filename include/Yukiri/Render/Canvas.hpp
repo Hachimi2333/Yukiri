@@ -3,6 +3,9 @@
 #include <Yukiri/Core/Geometry.hpp>
 #include <string_view>
 #include <vector>
+#ifdef DrawText
+#undef DrawText
+#endif
 
 namespace Yukiri
 {

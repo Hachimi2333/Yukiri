@@ -79,6 +79,12 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 	SDL_SetWindowMinimumSize(impl->m_Native, static_cast<int>(std::lround(static_cast<float>(config.m_MinWidth) * scale)),
 		static_cast<int>(std::lround(static_cast<float>(config.m_MinHeight) * scale)));
 	auto window = std::unique_ptr<Window>(new Window(std::move(impl)));
+	if (config.m_Decoration == WindowDecoration::Custom)
+	{
+		auto chrome = Detail::WindowChrome::Create(*window, window->m_Impl->m_Native);
+		if (!chrome) return std::unexpected(chrome.error());
+		window->m_Impl->m_Chrome = std::move(*chrome);
+	}
 	if (!m_Impl->m_Device)
 	{
 		auto device = Detail::RenderDevice::Create(window->m_Impl->m_Native, m_Impl->m_Config.m_EnableValidation);

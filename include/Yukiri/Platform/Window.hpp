@@ -30,6 +30,10 @@ public:
 	[[nodiscard]] Result<void> SetClipboard(std::string_view text);
 	void StartTextInput(Rect caret);
 	void StopTextInput();
+	[[nodiscard]] Result<void> SetSize(Size size);
+	[[nodiscard]] Result<void> Minimize();
+	[[nodiscard]] Result<void> Maximize();
+	[[nodiscard]] Result<void> Restore();
 	[[nodiscard]] Size MeasureText(std::string_view text, float fontSize = 14) const;
 	[[nodiscard]] float GetTextCaretX(std::string_view text, std::size_t offset, float fontSize = 14) const;
 	[[nodiscard]] std::size_t HitTestText(std::string_view text, float x, float fontSize = 14) const;

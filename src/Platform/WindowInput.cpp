@@ -47,6 +47,11 @@ void Window::Impl::HandleEvent(const SDL_Event& event)
 		break;
 	case SDL_EVENT_MOUSE_MOTION:
 		m_Tree.PointerMove({{event.motion.x / scale, event.motion.y / scale}, PointerButton::None, GetModifiers(SDL_GetModState())});
+		{
+			const auto* target = m_Tree.m_Capture ? m_Tree.m_Capture : m_Tree.m_Hover;
+			const auto cursor = static_cast<std::size_t>(target ? target->GetCursor() : Cursor::Arrow);
+			if (m_Cursors[cursor]) SDL_SetCursor(m_Cursors[cursor]);
+		}
 		break;
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 	case SDL_EVENT_MOUSE_BUTTON_UP:
@@ -72,6 +77,9 @@ void Window::Impl::HandleEvent(const SDL_Event& event)
 	default:
 		if (event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST)
 		{
+			if (event.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED || event.type == SDL_EVENT_WINDOW_DISPLAY_CHANGED)
+				SDL_SetWindowMinimumSize(m_Native, static_cast<int>(static_cast<float>(m_Config.m_MinWidth) * scale),
+					static_cast<int>(static_cast<float>(m_Config.m_MinHeight) * scale));
 			m_Tree.m_LayoutDirty = true;
 			m_Owner->Invalidate();
 		}

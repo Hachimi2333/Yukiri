@@ -35,13 +35,15 @@ void WidgetTree::SetRoot(std::unique_ptr<Widget> root)
 		m_LayoutDirty = m_Dirty = true;
 	});
 }
-void WidgetTree::Layout(Size size)
+void WidgetTree::Layout(Size size, Point origin)
 {
-	if (!m_Root || (!m_LayoutDirty && size.m_Width == m_LastSize.m_Width && size.m_Height == m_LastSize.m_Height)) return;
+	if (!m_Root || (!m_LayoutDirty && size.m_Width == m_LastSize.m_Width && size.m_Height == m_LastSize.m_Height &&
+		origin.m_X == m_LastOrigin.m_X && origin.m_Y == m_LastOrigin.m_Y)) return;
 	m_LastSize = size;
+	m_LastOrigin = origin;
 	m_LayoutDirty = false;
 	m_Root->Measure(size);
-	m_Root->Arrange({0, 0, size.m_Width, size.m_Height});
+	m_Root->Arrange({origin.m_X, origin.m_Y, size.m_Width, size.m_Height});
 }
 void WidgetTree::Paint(Canvas& canvas)
 {

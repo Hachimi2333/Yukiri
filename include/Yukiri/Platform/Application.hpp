@@ -6,6 +6,9 @@
 #include <memory>
 #include <cstdint>
 #include <filesystem>
+#ifdef CreateWindow
+#undef CreateWindow
+#endif
 
 namespace Yukiri
 {

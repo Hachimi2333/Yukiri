@@ -4,6 +4,14 @@
 #include <Yukiri/Render/Canvas.hpp>
 
 #include <iostream>
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#include <windowsx.h>
+#include <SDL3/SDL.h>
+#undef CreateWindow
+#undef DrawText
+#endif
 
 class PaintProbe : public Yukiri::Widget
 {
@@ -40,6 +48,7 @@ int main()
 	config.m_Width = 480;
 	config.m_Height = 320;
 	auto first = application.CreateWindow(config);
+	config.m_Decoration = Yukiri::WindowDecoration::Custom;
 	auto second = application.CreateWindow(config);
 	if (!first || !second)
 	{
@@ -49,8 +58,27 @@ int main()
 	(*first)->SetContent(std::make_unique<PaintProbe>());
 	(*second)->SetTheme(Yukiri::ThemeMode::Dark);
 	(*second)->SetContent(std::make_unique<PaintProbe>());
+#if defined(_WIN32)
+	int windowCount = 0;
+	auto** nativeWindows = SDL_GetWindows(&windowCount);
+	bool maxHitVerified = false;
+	for (int i = 0; i < windowCount; ++i)
+	{
+		if (!(SDL_GetWindowFlags(nativeWindows[i]) & SDL_WINDOW_BORDERLESS)) continue;
+		auto handle = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(nativeWindows[i]), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+		RECT client{};
+		GetClientRect(handle, &client);
+		const float scale = static_cast<float>(GetDpiForWindow(handle)) / 96;
+		POINT point{client.right - static_cast<LONG>(69 * scale), static_cast<LONG>(20 * scale)};
+		ClientToScreen(handle, &point);
+		maxHitVerified = SendMessageW(handle, WM_NCHITTEST, 0, MAKELPARAM(point.x, point.y)) == HTMAXBUTTON;
+	}
+	SDL_free(nativeWindows);
+	if (!maxHitVerified) return 9;
+#endif
 	for (int frame = 0; frame < 8; ++frame)
 	{
+		if (frame == 3) { auto resized = (*second)->SetSize({640, 420}); if (!resized) return 10; }
 		(*first)->Invalidate();
 		(*second)->Invalidate();
 		auto polled = application.Poll(false);

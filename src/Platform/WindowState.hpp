@@ -5,6 +5,7 @@
 #include "Render/WindowRenderer.hpp"
 #include "UI/WidgetTree.hpp"
 #include "Text/TextEngine.hpp"
+#include "WindowChrome.hpp"
 
 namespace Yukiri
 {
@@ -19,6 +20,8 @@ struct Window::Impl
 	Window* m_Owner = nullptr;
 	Detail::TextEngine* m_Text = nullptr;
 	std::uint64_t m_BlinkTick = 0;
+	std::unique_ptr<Detail::WindowChrome> m_Chrome;
+	std::array<SDL_Cursor*, 3> m_Cursors{};
 	void HandleEvent(const SDL_Event& event);
 };
 }
