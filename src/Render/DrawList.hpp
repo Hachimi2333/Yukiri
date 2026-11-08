@@ -3,6 +3,7 @@
 #include <Yukiri/Core/Geometry.hpp>
 #include <cstdint>
 #include <vector>
+#include <cmath>
 
 namespace Yukiri::Detail
 {
@@ -31,7 +32,7 @@ class DrawList
 {
 public:
 	void Add(Rect rectangle, Color color, Rect clip, float radius = 0, float border = 0,
-		std::uint32_t texture = 0, Rect uv = {0, 0, 1, 1}, bool glyph = false)
+		std::uint32_t texture = 0, Rect uv = {0, 0, 1, 1}, bool glyph = false, float rotation = 0)
 	{
 		if (rectangle.Empty() || clip.Empty() || color.m_A <= 0)
 			return;
@@ -39,8 +40,10 @@ public:
 		const Point corners[] = {{0, 0}, {1, 0}, {1, 1}, {0, 0}, {1, 1}, {0, 1}};
 		for (const auto corner : corners)
 		{
-			m_Vertices.push_back({{rectangle.m_X + corner.m_X * rectangle.m_Width,
-				rectangle.m_Y + corner.m_Y * rectangle.m_Height},
+			const float localX = (corner.m_X - 0.5f) * rectangle.m_Width;
+			const float localY = (corner.m_Y - 0.5f) * rectangle.m_Height;
+			m_Vertices.push_back({{rectangle.m_X + rectangle.m_Width * 0.5f + localX * std::cos(rotation) - localY * std::sin(rotation),
+				rectangle.m_Y + rectangle.m_Height * 0.5f + localX * std::sin(rotation) + localY * std::cos(rotation)},
 				{corner.m_X * rectangle.m_Width, corner.m_Y * rectangle.m_Height},
 				{rectangle.m_Width, rectangle.m_Height}, color, radius, border,
 				glyph ? 1.0f : 0.0f, 0,

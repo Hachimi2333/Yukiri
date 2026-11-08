@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <thread>
 #include <vector>
 
@@ -59,10 +60,13 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 	const auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
 		(config.m_Visible ? 0 : SDL_WINDOW_HIDDEN) |
 		(config.m_Decoration == WindowDecoration::Custom ? SDL_WINDOW_BORDERLESS : 0);
-	impl->m_Native = SDL_CreateWindow(config.m_Title.c_str(), config.m_Width, config.m_Height, flags);
+	const float scale = std::max(1.0f, SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay()));
+	impl->m_Native = SDL_CreateWindow(config.m_Title.c_str(), static_cast<int>(std::lround(static_cast<float>(config.m_Width) * scale)),
+		static_cast<int>(std::lround(static_cast<float>(config.m_Height) * scale)), flags);
 	if (!impl->m_Native)
 		return std::unexpected(Error{ErrorCode::WindowCreation, SDL_GetError()});
-	SDL_SetWindowMinimumSize(impl->m_Native, config.m_MinWidth, config.m_MinHeight);
+	SDL_SetWindowMinimumSize(impl->m_Native, static_cast<int>(std::lround(static_cast<float>(config.m_MinWidth) * scale)),
+		static_cast<int>(std::lround(static_cast<float>(config.m_MinHeight) * scale)));
 	auto window = std::unique_ptr<Window>(new Window(std::move(impl)));
 	if (!m_Impl->m_Device)
 	{
@@ -95,30 +99,28 @@ Result<bool> Application::Poll(bool wait)
 	assert(m_Impl->m_Thread == std::this_thread::get_id());
 	bool dirty = false;
 	for (const auto& window : m_Impl->m_Windows)
-		dirty |= window->m_Impl->m_Dirty || !window->IsOpen();
+		dirty |= window->m_Impl->m_Dirty || window->m_Impl->m_Tree.m_Dirty || !window->IsOpen();
 	SDL_Event event;
 	auto dispatch = [&](const SDL_Event& input)
 	{
 		if (input.type == SDL_EVENT_QUIT)
 			Quit();
+		Window* target = nullptr;
+		auto* native = SDL_GetWindowFromEvent(&input);
 		for (const auto& window : m_Impl->m_Windows)
 		{
-			if (input.type >= SDL_EVENT_WINDOW_FIRST && input.type <= SDL_EVENT_WINDOW_LAST &&
-				input.window.windowID == SDL_GetWindowID(window->m_Impl->m_Native))
-			{
-				if (input.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
-					window->Close();
-				else
-					window->Invalidate();
-			}
+			if (window->m_Impl->m_Native == native) { target = window.get(); break; }
 		}
+		if (target && target->IsOpen()) target->m_Impl->HandleEvent(input);
 	};
 	if (wait && !dirty && !m_Impl->m_Windows.empty() && SDL_WaitEventTimeout(&event, 100))
 		dispatch(event);
 	while (SDL_PollEvent(&event))
 		dispatch(event);
 	std::erase_if(m_Impl->m_Windows, [](const auto& window) { return !window->IsOpen(); });
-	for (const auto& window : m_Impl->m_Windows)
+	std::vector<Window*> windows;
+	for (const auto& window : m_Impl->m_Windows) windows.push_back(window.get());
+	for (auto* window : windows)
 	{
 		auto result = window->Update();
 		if (!result)

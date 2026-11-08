@@ -1,7 +1,23 @@
 #include <Yukiri/Platform/Application.hpp>
 #include <Yukiri/Platform/Window.hpp>
+#include <Yukiri/UI/Widget.hpp>
+#include <Yukiri/Render/Canvas.hpp>
 
 #include <iostream>
+
+class PaintProbe : public Yukiri::Widget
+{
+	void OnPaint(Yukiri::Canvas& canvas) override
+	{
+		canvas.FillRectangle({20, 20, 120, 80}, Yukiri::Color::FromHex(0x3674EA), 12);
+		canvas.FillRectangle({70, 50, 120, 80}, Yukiri::Color::FromHex(0xE84C80, 0.5f), 8);
+		canvas.StrokeRectangle({20, 150, 200, 60}, GetTheme().m_Accent, 2, 6);
+		canvas.PushClip({200, 20, 50, 50});
+		canvas.FillRectangle({180, 0, 100, 100}, Yukiri::Color::FromHex(0x35B78A), 20);
+		canvas.PopClip();
+		canvas.DrawLine({30, 240}, {260, 280}, GetTheme().m_Text, 2);
+	}
+};
 
 int main()
 {
@@ -29,6 +45,9 @@ int main()
 		std::cerr << (!first ? first.error().m_Message : second.error().m_Message) << '\n';
 		return 4;
 	}
+	(*first)->SetContent(std::make_unique<PaintProbe>());
+	(*second)->SetTheme(Yukiri::ThemeMode::Dark);
+	(*second)->SetContent(std::make_unique<PaintProbe>());
 	for (int frame = 0; frame < 8; ++frame)
 	{
 		(*first)->Invalidate();
