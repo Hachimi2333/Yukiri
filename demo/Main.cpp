@@ -1,0 +1,44 @@
+#include "Gallery.hpp"
+#include <iostream>
+#include <string_view>
+
+int main(int argc, char** argv)
+{
+	bool smoke = false;
+	bool custom = false;
+	for (int i = 1; i < argc; ++i)
+	{
+		if (std::string_view(argv[i]) == "--smoke") smoke = true;
+		if (std::string_view(argv[i]) == "--custom") custom = true;
+	}
+	auto application = Yukiri::Application::Create({"Yukiri Demo", true});
+	if (!application) { std::cerr << application.error().m_Message << '\n'; return 1; }
+	auto& app = **application;
+	auto mainWindow = YukiriDemo::OpenGallery(app, custom ? Yukiri::WindowDecoration::Custom : Yukiri::WindowDecoration::Native,
+		Yukiri::ThemeMode::System, !smoke);
+	if (!mainWindow) { std::cerr << mainWindow.error().m_Message << '\n'; return 2; }
+	if (smoke)
+	{
+		auto second = YukiriDemo::OpenGallery(app, Yukiri::WindowDecoration::Custom, Yukiri::ThemeMode::Dark, false);
+		if (!second) { std::cerr << second.error().m_Message << '\n'; return 3; }
+		for (int frame = 0; frame < 70; ++frame)
+		{
+			static_cast<YukiriDemo::Gallery*>((*mainWindow)->GetContent())->Exercise(frame);
+			if (frame == 15) { auto size = (*mainWindow)->SetSize({360, 520}); if (!size) return 4; }
+			if (frame == 30) { auto size = (*mainWindow)->SetSize({1040, 740}); if (!size) return 5; }
+			if (frame == 45) (*mainWindow)->SetTheme(Yukiri::ThemeMode::Dark);
+			(*mainWindow)->Invalidate();
+			(*second)->Invalidate();
+			auto polled = app.Poll(false);
+			if (!polled) { std::cerr << polled.error().m_Message << '\n'; return 6; }
+		}
+		app.Quit();
+		auto closed = app.Poll(false);
+		if (!closed || *closed || app.GetValidationErrorCount()) return 7;
+		std::cout << "Gallery GPU smoke passed: native/custom, resize, themes, text, tabs, and controls.\n";
+		return 0;
+	}
+	auto run = app.Run();
+	if (!run) { std::cerr << run.error().m_Message << '\n'; return 8; }
+	return app.GetValidationErrorCount() ? 9 : 0;
+}
