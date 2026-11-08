@@ -21,9 +21,11 @@ protected:
 	Size OnMeasure(Size available) override;
 	void OnArrange(Rect content) override;
 	void OnPaint(Canvas& canvas) override;
+	Rect GetFocusBounds() const noexcept override;
 private:
 	[[nodiscard]] std::vector<Rect> Headers() const;
 	std::vector<std::string> m_Titles;
+	std::vector<Rect> m_Headers;
 	std::size_t m_Selected = 0;
 	Detail::Transition m_IndicatorX;
 	Detail::Transition m_IndicatorWidth;

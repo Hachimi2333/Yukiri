@@ -48,7 +48,8 @@ std::vector<Rect> TabView::Headers() const
 Size TabView::OnMeasure(Size available)
 {
 	Size desired;
-	for (const auto& header : Headers()) desired.m_Width = std::max(desired.m_Width, header.Right());
+	m_Headers = Headers();
+	for (const auto& header : m_Headers) desired.m_Width = std::max(desired.m_Width, header.Right());
 	for (auto* child : Children())
 	{
 		child->Measure({available.m_Width, std::max(0.0f, available.m_Height - 44)});
@@ -61,6 +62,12 @@ Size TabView::OnMeasure(Size available)
 void TabView::OnArrange(Rect content)
 {
 	for (auto* child : Children()) child->Arrange({content.m_X, content.m_Y + 44, content.m_Width, std::max(0.0f, content.m_Height - 44)});
+}
+Rect TabView::GetFocusBounds() const noexcept
+{
+	if (m_Selected >= m_Headers.size()) return {};
+	const auto header = m_Headers[m_Selected];
+	return Rect{header.m_X + 2, 3, std::max(0.0f, header.m_Width - 4), 30}.Intersect(GetLocalBounds());
 }
 bool TabView::OnAnimate(std::chrono::nanoseconds delta)
 {

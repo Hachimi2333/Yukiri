@@ -123,6 +123,7 @@ bool Widget::IsEnabled() const noexcept { return m_Enabled && (!m_Parent || m_Pa
 bool Widget::IsFocusable() const noexcept { return m_Focusable; }
 bool Widget::IsHovered() const noexcept { return m_Hovered; }
 bool Widget::HasFocus() const noexcept { return m_Tree && m_Tree->m_Focus == this; }
+bool Widget::IsFocusVisible() const noexcept { return HasFocus() && m_Tree->m_FocusVisible; }
 Cursor Widget::GetCursor() const noexcept { return m_Cursor; }
 Window* Widget::GetWindow() const noexcept { return m_Tree ? m_Tree->m_Window : nullptr; }
 Point Widget::ToLocal(Point global) const noexcept { return {global.m_X - m_Bounds.m_X, global.m_Y - m_Bounds.m_Y}; }
@@ -236,8 +237,11 @@ Size Widget::MeasureText(std::string_view text, float fontSize) const
 }
 void Widget::PaintFocus(Canvas& canvas) const
 {
-	if (HasFocus()) canvas.StrokeRectangle({2, 2, std::max(0.0f, m_Bounds.m_Width - 4),
-		std::max(0.0f, m_Bounds.m_Height - 4)}, GetTheme().m_Accent, 1.5f, std::max(0.0f, GetRadius() - 1));
+	if (IsFocusVisible()) canvas.StrokeRectangle(GetFocusBounds(), GetTheme().m_Accent, 1.5f, std::max(0.0f, GetRadius() - 1));
+}
+Rect Widget::GetFocusBounds() const noexcept
+{
+	return {2, 2, std::max(0.0f, m_Bounds.m_Width - 4), std::max(0.0f, m_Bounds.m_Height - 4)};
 }
 void Widget::OnPaint(Canvas& canvas)
 {
@@ -259,6 +263,14 @@ bool Widget::AcceptsTextInput() const noexcept { return false; }
 void Widget::BringIntoView()
 {
 	Rect rectangle = GetBounds();
+	for (auto* parent = m_Parent; parent; parent = parent->m_Parent) parent->OnBringIntoView(rectangle);
+}
+void Widget::BringFocusIntoView()
+{
+	auto rectangle = GetFocusBounds();
+	rectangle = Rect{rectangle.m_X - 2, rectangle.m_Y - 2, rectangle.m_Width + 4, rectangle.m_Height + 4}.Intersect(GetLocalBounds());
+	rectangle.m_X += m_Bounds.m_X;
+	rectangle.m_Y += m_Bounds.m_Y;
 	for (auto* parent = m_Parent; parent; parent = parent->m_Parent) parent->OnBringIntoView(rectangle);
 }
 std::weak_ptr<int> Widget::ObserveLifetime() const noexcept { return m_Lifetime; }

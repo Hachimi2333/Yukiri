@@ -183,7 +183,7 @@ void TextBox::OnPaint(Canvas& canvas)
 	const auto size = GetActualSize();
 	const auto& theme = GetTheme();
 	canvas.FillRectangle(GetLocalBounds(), InteractiveColor(GetStyle().m_Background.value_or(theme.m_Surface), theme.m_Hover, theme.m_Pressed, false), GetRadius());
-	canvas.StrokeRectangle(GetLocalBounds(), HasFocus() ? theme.m_Accent : GetStyle().m_Border.value_or(theme.m_Border), HasFocus() ? 1.5f : 1, GetRadius());
+	canvas.StrokeRectangle(GetLocalBounds(), IsFocusVisible() ? theme.m_Accent : GetStyle().m_Border.value_or(theme.m_Border), IsFocusVisible() ? 1.5f : 1, GetRadius());
 	auto& editor = m_Impl->m_Editor;
 	std::string display = editor.m_Text;
 	std::size_t caret = editor.m_Caret;

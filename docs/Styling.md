@@ -15,3 +15,5 @@ MotionSettings 通过 ApplicationConfig::m_Motion 设置应用默认值，创建
 自定义控件重写受保护的 bool OnAnimate(std::chrono::nanoseconds delta)，更新显示状态并返回是否继续；状态变化时调用 RequestAnimationFrame。回调位于延迟销毁保护范围。控件模型值与信号应立即更新，动画仅改变显示。内部 Transition 使用 cubic ease-out，并从当前显示值衔接新的目标。
 
 内置控件动效包括开关轨道 / 圆点、复选框 / 单选标记、按钮按下 / 悬停、下拉箭头 / 展开 / 淡入淡出 / 选项高亮、Tab 指示条 / 背景，以及滑块与进度变化。Tab 内容即时切换；滑块拖动直接跟手。焦点框及时显示，不等待过渡完成。
+
+键盘焦点框仅在 Tab 导航模式显示，鼠标点击保持正常边框和实际输入焦点。CheckBox / RadioButton / ToggleSwitch 的提示紧凑包围图标与文字，并预留间距；TabView 仅包围当前标题，不跨越内容页。GetFocusBounds() 同时定义焦点绘制和导航可见区域。

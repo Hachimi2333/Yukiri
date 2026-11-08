@@ -40,7 +40,7 @@ void ComboBox::OnPaint(Canvas& canvas)
 	const auto& theme = GetTheme();
 	const auto size = GetActualSize();
 	canvas.FillRectangle(GetLocalBounds(), InteractiveColor(GetStyle().m_Background.value_or(theme.m_Surface), theme.m_Hover, theme.m_Pressed, IsPopupOpen()), GetRadius());
-	canvas.StrokeRectangle(GetLocalBounds(), HasFocus() ? theme.m_Accent : theme.m_Border, 1, GetRadius());
+	canvas.StrokeRectangle(GetLocalBounds(), IsFocusVisible() ? theme.m_Accent : theme.m_Border, 1, GetRadius());
 	canvas.PushClip({8, 0, std::max(0.0f, size.m_Width - 36), size.m_Height});
 	canvas.DrawText(GetSelectedText(), {10, (size.m_Height - canvas.MeasureText(GetSelectedText(), GetFontSize()).m_Height) * 0.5f}, GetForeground(), GetFontSize());
 	canvas.PopClip();

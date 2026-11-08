@@ -89,10 +89,20 @@ void WidgetTree::SetFocus(Widget* widget, bool bringIntoView)
 {
 	Dispatch dispatch(*this);
 	if (widget && (!widget->IsEnabled() || !widget->IsVisible() || !widget->IsFocusable())) return;
-	if (m_Focus == widget) return;
+	if (m_Focus == widget)
+	{
+		if (m_Focus && bringIntoView && m_FocusVisible) m_Focus->BringFocusIntoView();
+		return;
+	}
 	auto* previous = std::exchange(m_Focus, widget);
 	if (previous) previous->OnFocusChanged(false);
-	if (m_Focus) { m_Focus->OnFocusChanged(true); if (m_Focus && bringIntoView) m_Focus->BringIntoView(); }
+	if (m_Focus) { m_Focus->OnFocusChanged(true); if (m_Focus && bringIntoView) m_Focus->BringFocusIntoView(); }
+	m_Dirty = true;
+}
+void WidgetTree::SetFocusVisible(bool visible)
+{
+	if (m_FocusVisible == visible) return;
+	m_FocusVisible = visible;
 	m_Dirty = true;
 }
 void WidgetTree::Forget(Widget* widget)
@@ -122,6 +132,7 @@ void WidgetTree::Route(PointerEvent& event, void (Widget::*handler)(PointerEvent
 void WidgetTree::PointerDown(PointerEvent event)
 {
 	Dispatch dispatch(*this);
+	SetFocusVisible(false);
 	if (m_PopupPointer && !m_PopupClosing)
 	{
 		auto pointer = m_PopupPointer;
@@ -173,6 +184,7 @@ void WidgetTree::AdvanceFocus(bool backwards)
 	const auto count = static_cast<int>(candidates.size());
 	int index = found == candidates.end() ? (backwards ? 0 : -1) : static_cast<int>(found - candidates.begin());
 	index = (index + (backwards ? -1 : 1) + count) % count;
+	SetFocusVisible(true);
 	SetFocus(candidates[static_cast<std::size_t>(index)]);
 }
 void WidgetTree::KeyDown(KeyEvent event)
@@ -225,6 +237,7 @@ void WidgetTree::ClosePopup(bool immediate)
 void WidgetTree::LostFocus()
 {
 	Dispatch dispatch(*this);
+	SetFocusVisible(false);
 	ClosePopup(true);
 	SetFocus(nullptr);
 	if (m_Capture) m_Capture->ReleasePointer();

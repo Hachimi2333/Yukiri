@@ -68,6 +68,7 @@ public:
 	[[nodiscard]] bool IsFocusable() const noexcept;
 	[[nodiscard]] bool IsHovered() const noexcept;
 	[[nodiscard]] bool HasFocus() const noexcept;
+	[[nodiscard]] bool IsFocusVisible() const noexcept;
 	[[nodiscard]] Cursor GetCursor() const noexcept;
 	[[nodiscard]] Window* GetWindow() const noexcept;
 	void Measure(Size available);
@@ -105,6 +106,7 @@ protected:
 	virtual void OnPaintOverlay(Canvas& canvas);
 	virtual void OnBringIntoView(Rect& rectangle);
 	[[nodiscard]] virtual Rect GetChildrenClip() const noexcept;
+	[[nodiscard]] virtual Rect GetFocusBounds() const noexcept;
 	[[nodiscard]] Rect GetLocalBounds() const noexcept;
 	void PaintFocus(Canvas& canvas) const;
 	[[nodiscard]] Color InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) noexcept;
@@ -123,6 +125,7 @@ private:
 	friend class Grid;
 	friend class ScrollView;
 	void TranslateSubtree(Point delta);
+	void BringFocusIntoView();
 	void Attach(Detail::WidgetTree* tree);
 	void SetHovered(bool hovered);
 	bool Tick(std::chrono::steady_clock::time_point now);

@@ -29,22 +29,29 @@ void CheckBox::Activate()
 	SetChecked(!m_Checked);
 	if (!lifetime.expired()) Button::Activate();
 }
-Size CheckBox::OnMeasure(Size) { return {MeasureText(GetText()).m_Width + 32, GetTheme().m_ControlHeight}; }
+Size CheckBox::OnMeasure(Size)
+{
+	m_LabelSize = MeasureText(GetText());
+	return {m_LabelSize.m_Width + 40, std::max(GetTheme().m_ControlHeight, m_LabelSize.m_Height + 12)};
+}
+Rect CheckBox::GetFocusBounds() const noexcept { return Detail::SelectionFocusBounds(GetActualSize(), m_LabelSize, 34, 18, 18); }
 void CheckBox::OnPaint(Canvas& canvas)
 {
 	const auto& theme = GetTheme();
 	const float y = (GetActualSize().m_Height - 18) * 0.5f;
 	const float amount = m_CheckVisual.GetValue();
 	const auto accent = IsEnabled() ? theme.m_Accent : theme.m_MutedText;
-	canvas.FillRectangle({1, y, 18, 18}, Detail::Mix(InteractiveColor(theme.m_Surface, theme.m_Hover, theme.m_Pressed, m_Pressed), accent, amount), 4);
-	canvas.StrokeRectangle({1, y, 18, 18}, Detail::Mix(theme.m_Border, accent, amount), 1, 4);
+	canvas.FillRectangle({6, y, 18, 18}, Detail::Mix(InteractiveColor(theme.m_Surface, theme.m_Hover, theme.m_Pressed, m_Pressed), accent, amount), 4);
+	canvas.StrokeRectangle({6, y, 18, 18}, Detail::Mix(theme.m_Border, accent, amount), 1, 4);
 	if (amount > 0)
 	{
-		canvas.DrawLine({5, y + 9}, {9, y + 13}, theme.m_OnAccent.WithAlpha(amount), 1.8f);
-		canvas.DrawLine({9, y + 13}, {15, y + 5}, theme.m_OnAccent.WithAlpha(amount), 1.8f);
+		canvas.DrawLine({10, y + 9}, {14, y + 13}, theme.m_OnAccent.WithAlpha(amount), 1.8f);
+		canvas.DrawLine({14, y + 13}, {20, y + 5}, theme.m_OnAccent.WithAlpha(amount), 1.8f);
 	}
 	const float height = canvas.MeasureText(GetText(), GetFontSize()).m_Height;
-	canvas.DrawText(GetText(), {29, (GetActualSize().m_Height - height) * 0.5f}, GetForeground(), GetFontSize());
+	canvas.PushClip({34, 4, std::max(0.0f, GetActualSize().m_Width - 40), std::max(0.0f, GetActualSize().m_Height - 8)});
+	canvas.DrawText(GetText(), {34, (GetActualSize().m_Height - height) * 0.5f}, GetForeground(), GetFontSize());
+	canvas.PopClip();
 	PaintFocus(canvas);
 }
 }

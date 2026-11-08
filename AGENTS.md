@@ -7,7 +7,7 @@
 - Keep each file responsible for one coherent concern. Do not split files just to satisfy a line count, or combine unrelated subsystems.
 - A parent exclusively owns its children through `std::unique_ptr`. Observers do not own widgets. Defer destruction during input, layout, and paint dispatch. UI mutation and rendering run on the application thread.
 - Use RAII, the rule of zero where practical, explicit ownership, and the C++ Core Guidelines. Fallible initialization and resource operations return `std::expected<..., Error>`.
-- Confirm new important public names with the user. Approved names include Yukiri, Application, Window, Widget, Canvas, Theme, ApplicationConfig, WindowConfig, WindowDecoration, ThemeMode, Signal, Connection, Error, ErrorCode, MotionSettings, OnAnimate, RequestAnimationFrame, and SetSmoothScrolling.
+- Confirm new important public names with the user. Approved names include Yukiri, Application, Window, Widget, Canvas, Theme, ApplicationConfig, WindowConfig, WindowDecoration, ThemeMode, Signal, Connection, Error, ErrorCode, MotionSettings, OnAnimate, RequestAnimationFrame, SetSmoothScrolling, IsFocusVisible, and GetFocusBounds.
 
 ## Source style
 
@@ -22,6 +22,7 @@
 - Use CMake >= 3.28 and Ninja. Keep MSVC / MinGW and Debug / Release build trees separate.
 - Apply strict warnings only to Yukiri code, not dependencies. Do not propagate project warning flags into consumers.
 - Keep presentation synchronized with FIFO and per-window refresh deadlines; never add a fixed 16ms wait after presentation. Avoid queue-idle waits in interactive uploads.
+- Keep logical input focus separate from keyboard focus visibility. Pointer presses hide focus indicators; Tab navigation reveals them. Custom focus bounds use widget-local coordinates and must avoid content overlap.
 - Animate visual state using elapsed time; update logical values and emit notifications immediately. Finished or hidden motion must not keep scheduling frames.
 - Run meaningful Catch2 / CTest coverage for changed behavior. GPU and desktop interaction checks are separate from headless tests.
 - Never claim runtime checks from compilation alone. Record compiler, OS, GPU, validation-layer and manual interaction results in docs/Validation.md.

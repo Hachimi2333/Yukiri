@@ -48,6 +48,9 @@ private:
 	[[nodiscard]] Widget* Target(Point position);
 	void Route(PointerEvent& event, void (Widget::*handler)(PointerEvent&));
 	void AdvanceFocus(bool backwards);
+	void SetFocusVisible(bool visible);
+	bool m_FocusVisible = false;
+	friend class Yukiri::Widget;
 	int m_DispatchDepth = 0;
 	bool m_Flushing = false;
 	std::vector<std::function<void()>> m_Deferred;
