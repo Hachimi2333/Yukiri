@@ -180,7 +180,10 @@ void Widget::Render(Canvas& canvas)
 	canvas.SetOffset({m_Bounds.m_X, m_Bounds.m_Y});
 	canvas.PushClip(GetLocalBounds());
 	OnPaint(canvas);
+	const auto childClip = GetChildrenClip();
+	canvas.PushClip({childClip.m_X - m_Bounds.m_X, childClip.m_Y - m_Bounds.m_Y, childClip.m_Width, childClip.m_Height});
 	for (auto& child : m_Children) child->Render(canvas);
+	canvas.PopClip();
 	OnPaintOverlay(canvas);
 	canvas.Restore();
 }
@@ -188,8 +191,9 @@ void Widget::Render(Canvas& canvas)
 Widget* Widget::HitTest(Point point)
 {
 	if (!m_Visible || !IsEnabled() || !m_Bounds.Contains(point)) return nullptr;
-	for (auto child = m_Children.rbegin(); child != m_Children.rend(); ++child)
-		if (auto* target = (*child)->HitTest(point)) return target;
+	if (GetChildrenClip().Contains(point))
+		for (auto child = m_Children.rbegin(); child != m_Children.rend(); ++child)
+			if (auto* target = (*child)->HitTest(point)) return target;
 	return this;
 }
 void Widget::InvalidateLayout() { if (m_Tree) m_Tree->m_LayoutDirty = m_Tree->m_Dirty = true; }
@@ -224,6 +228,7 @@ void Widget::OnPaint(Canvas& canvas)
 }
 void Widget::OnPaintOverlay(Canvas&) {}
 void Widget::OnBringIntoView(Rect&) {}
+Rect Widget::GetChildrenClip() const noexcept { return m_Bounds; }
 void Widget::OnPointerDown(PointerEvent&) {}
 void Widget::OnPointerUp(PointerEvent&) {}
 void Widget::OnPointerMove(PointerEvent&) {}

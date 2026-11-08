@@ -99,6 +99,7 @@ protected:
 	virtual void OnPaint(Canvas& canvas);
 	virtual void OnPaintOverlay(Canvas& canvas);
 	virtual void OnBringIntoView(Rect& rectangle);
+	[[nodiscard]] virtual Rect GetChildrenClip() const noexcept;
 	[[nodiscard]] Rect GetLocalBounds() const noexcept;
 	void PaintFocus(Canvas& canvas) const;
 	[[nodiscard]] Color InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) const noexcept;

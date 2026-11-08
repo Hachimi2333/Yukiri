@@ -15,3 +15,13 @@ Window::SetContent 接管根控件。使用 AddChild<T> 创建并添加子控件
 Measure 的 desired size 包含 margin；Arrange 接收全局逻辑坐标的槽位，扣除 margin 后按尺寸约束与 alignment 排列。OnArrange 的内容矩形也使用全局逻辑坐标；OnPaint 的 Canvas 已平移到控件局部坐标。
 
 StackPanel 在主轴按自然尺寸排列，Grid 支持固定 / Auto / 加权 Star 及 span；SetCell 返回无效单元格错误。Overlay 按子控件顺序叠放，逆序命中测试。焦点在窗口内循环，禁用或隐藏的子树不会获得焦点。
+
+## 基础控件
+
+可包含 Yukiri/Yukiri.hpp，或单独包含所需头文件。所有公共头文件都以独立翻译单元进行构建检查。
+
+Button 提供 m_Clicked，CheckBox / ToggleSwitch / RadioButton 提供 m_CheckedChanged。RadioButton 在同一父级、相同 group 内互斥。Slider 提供范围与 m_ValueChanged，ProgressBar 使用 0..1 进度值。
+
+ComboBox 是不可编辑下拉框，SetSelectedIndex 返回范围检查结果；支持方向键、Home / End、Enter 和 Escape，内容在窗口内弹出层绘制。TabView 使用 AddTab 管理页面，切换后隐藏非活动子树。
+
+ScrollView 使用 SetContent，默认纵向滚动，可启用横向滚动；支持滚轮、拖动滚动条和焦点控件自动进入视口。复杂控件的结构内容应通过 SetContent / AddTab 管理。

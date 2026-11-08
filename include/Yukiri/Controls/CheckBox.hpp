@@ -1,0 +1,21 @@
+#pragma once
+
+#include <Yukiri/Controls/Button.hpp>
+
+namespace Yukiri
+{
+class CheckBox : public Button
+{
+public:
+	explicit CheckBox(std::string text = {}, bool checked = false);
+	virtual void SetChecked(bool checked);
+	[[nodiscard]] bool IsChecked() const noexcept;
+	Signal<bool> m_CheckedChanged;
+protected:
+	Size OnMeasure(Size available) override;
+	void OnPaint(Canvas& canvas) override;
+	void Activate() override;
+private:
+	bool m_Checked;
+};
+}
