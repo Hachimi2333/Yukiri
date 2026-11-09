@@ -11,6 +11,7 @@
 #include "CloseState.hpp"
 #include "WindowEvents.hpp"
 #include "FileDialogTask.hpp"
+#include "WindowsAccessibility.hpp"
 
 namespace Yukiri
 {
@@ -24,6 +25,7 @@ struct Window::Impl
 	std::vector<std::filesystem::path> m_DroppedFiles;
 	Dispatcher m_Dispatcher;
 	std::unique_ptr<Detail::FileDialogTask> m_FileDialog;
+	std::unique_ptr<Detail::WindowsAccessibility> m_Accessibility;
 	bool m_Dirty = true;
 	std::unique_ptr<Detail::WindowRenderer> m_Renderer;
 	Detail::WidgetTree m_Tree;

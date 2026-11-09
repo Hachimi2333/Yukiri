@@ -23,6 +23,7 @@ protected:
 	void OnPaint(Canvas& canvas) override;
 	Rect GetFocusBounds() const noexcept override;
 private:
+	friend class Detail::AccessibilityTree;
 	[[nodiscard]] std::vector<Rect> Headers() const;
 	std::vector<std::string> m_Titles;
 	std::vector<Rect> m_Headers;

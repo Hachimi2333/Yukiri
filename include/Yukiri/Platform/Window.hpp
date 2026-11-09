@@ -60,6 +60,9 @@ public:
 	[[nodiscard]] std::vector<std::pair<std::size_t, float>> GetTextCarets(std::string_view text, float fontSize = 14, const Font& font = {}) const;
 	[[nodiscard]] std::uint64_t GetFontGeneration() const noexcept;
 	[[nodiscard]] bool IsOpen() const noexcept;
+	[[nodiscard]] bool IsVisible() const noexcept;
+	[[nodiscard]] bool IsMinimized() const noexcept;
+	[[nodiscard]] bool IsMaximized() const noexcept;
 	[[nodiscard]] Size GetSize() const;
 	[[nodiscard]] Rect GetContentBounds() const;
 	[[nodiscard]] float GetScale() const;

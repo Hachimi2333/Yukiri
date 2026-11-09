@@ -35,6 +35,7 @@ protected:
 	void OnPaint(Canvas& canvas) override;
 	Rect GetFocusBounds() const noexcept override;
 private:
+	friend class Detail::AccessibilityTree;
 	friend class MenuBar;
 	[[nodiscard]] bool Selectable(std::size_t index) const;
 	[[nodiscard]] float RowTop(std::size_t index) const;

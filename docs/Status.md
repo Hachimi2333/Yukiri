@@ -28,7 +28,7 @@
 
 首版仍有明确边界：Windows 10 未实机运行；实际 100% / 150% / 200% DPI、跨屏移动、最小化 / 拖动贴靠及 Snap Layouts 悬停菜单的完整桌面验收待补齐。返回 HTMAXBUTTON 和窗口样式已自动验证，不能替代 shell 菜单实际显示检查。
 
-Linux、完整双向段落、彩色 Emoji、无障碍接口及扩展控件属于 [后续规划](../FUTURE.md)。
+Linux、完整双向段落、彩色 Emoji 及更多扩展控件属于 [后续规划](../FUTURE.md)。
 
 动画与流畅度优化已实现：MotionSettings、自定义动画钩子、按显示器刷新率调度、非阻塞资源检查、塑形缓存、帧内脏图集上传、控件状态动效、下拉收放、Tab 指示条和平滑滚动。Demo 提供与主题下拉框同步的深浅切换按钮；各窗口主题独立。
 
@@ -41,3 +41,5 @@ Linux、完整双向段落、彩色 Emoji、无障碍接口及扩展控件属于
 项目 SVG 已原样保存，Demo 嵌入多尺寸 Windows 图标；原生窗口、自绘标题栏和 EXE 使用同一标识。框架只提供内部宿主图标绘制能力，不包含品牌资源，不要求运行时图片文件；图标验证结果见 Validation。
 
 仓库入口使用默认英文 README.md 与中文 README.zh-CN.md，提供一致的功能、构建、集成及状态说明；安装文档保留相同目录关系，便于离线阅读。
+
+0.2 无障碍阶段实现 AccessibilityInfo、Windows UI Automation、文字范围与按需虚拟数据节点，原生和自绘窗口共用语义；应用线程初始化为 COM STA。直接原生 COM 接口与语义测试不创建窗口。Narrator、屏幕坐标及实际事件交付尚待用户验收，详见 Accessibility 与 ManualTesting。

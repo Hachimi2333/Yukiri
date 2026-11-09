@@ -35,6 +35,7 @@ protected:
 	void OnArrange(Rect content) override;
 	void OnPaint(Canvas& canvas) override;
 private:
+	friend class Detail::AccessibilityTree;
 	void CompleteImpl(Result result, bool force);
 	Grid* m_Layout = nullptr;
 	Label* m_Title = nullptr;

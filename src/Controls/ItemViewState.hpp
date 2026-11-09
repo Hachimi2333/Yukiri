@@ -9,7 +9,8 @@ namespace Yukiri
 {
 struct ListView::Impl
 {
-	struct Row { ItemId m_Id; unsigned m_Depth; bool m_HasChildren; };
+	struct Row { ItemId m_Id; unsigned m_Depth; bool m_HasChildren; std::size_t m_Ordinal; };
+	std::uint64_t m_ModelGeneration = 0;
 	ViewKind m_Kind = ViewKind::List;
 	std::shared_ptr<ItemModel> m_Model;
 	std::shared_ptr<SelectionModel> m_Selection;

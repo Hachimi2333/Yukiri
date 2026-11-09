@@ -9,6 +9,26 @@ namespace Yukiri
 struct TextBox::Impl
 {
 	explicit Impl(bool multiline) : m_Editor(!multiline), m_Multiline(multiline) {}
+	std::size_t ToCommittedOffset(std::size_t visual) const
+	{
+		const auto offset = m_Visual.ToSource(visual);
+		if (!m_Composition.IsActive()) return std::min(offset, m_Editor.m_Text.size());
+		const auto start = m_Editor.SelectionStart();
+		const auto end = m_Visual.ToSource(m_Visual.m_Display.m_CompositionEnd);
+		return std::min(m_Editor.m_Text.size(), offset <= start ? offset : offset < end ? start : offset - end + m_Editor.SelectionEnd());
+	}
+	std::size_t ToVisualOffset(std::size_t committed, bool endPoint = false) const
+	{
+		committed = std::min(committed, m_Editor.m_Text.size());
+		if (m_Composition.IsActive())
+		{
+			const auto start = m_Editor.SelectionStart();
+			const auto end = m_Visual.ToSource(m_Visual.m_Display.m_CompositionEnd);
+			if (committed >= m_Editor.SelectionEnd()) committed = committed - m_Editor.SelectionEnd() + end;
+			else if (committed > start) committed = endPoint ? end : start;
+		}
+		return m_Visual.ToVisual(committed);
+	}
 	Detail::TextEditor m_Editor;
 	Detail::TextComposition m_Composition;
 	Detail::TextVisual m_Visual;

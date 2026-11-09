@@ -64,3 +64,12 @@ GPU 检查可自行运行 `tools/GpuSmoke.ps1 -Preset msvc-release`，日志写�
 - [ ] 十万行持续滚动无明显停顿，窗口 / 数据反复销毁不持续积累控件和图片资源。
 
 无障碍检查会随对应阶段交付补充。
+
+## 0.2 Windows 无障碍（用户启动，尚未执行）
+
+1. 启动 Demo 与 Windows Narrator / Inspect，分别打开自绘和原生窗口；检查名称、角色、状态及物理屏幕边界。Tab 导航时应朗读当前控件，鼠标仍按原焦点框规则工作。
+2. 操作按钮、开关、单选组、滑块、数值输入、Tab、下拉层和菜单；检查对应 Invoke / Toggle / Selection / ExpandCollapse / RangeValue。模态出现时底层不可操作，关闭后焦点恢复。
+3. 在 TextArea 中输入中英文、跨行选择、查找、撤销、滚动；检查文字范围与可见范围。密码字段不得朗读或通过 Value / Text 取到明文。
+4. 在十万行数据中导航、展开、排序和编辑；检查 Grid / Table、当前行、列标题、Realize，确认没有逐行 Widget。删除模型项或关闭窗口后旧元素应不可用。
+5. 检查自绘系统按钮名称与操作，取消文档关闭后窗口仍存在。跨 DPI 移动后 Inspect 边界应跟随。
+6. 记录 Windows / Narrator 版本、工具链、装饰模式、DPI、复现步骤及日志。此清单未执行，不记为通过。

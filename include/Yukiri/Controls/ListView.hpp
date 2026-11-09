@@ -61,6 +61,7 @@ protected:
 	Rect GetChildrenClip() const noexcept override;
 	Rect GetFocusBounds() const noexcept override;
 private:
+	friend class Detail::AccessibilityTree;
 	struct Impl;
 	class Editor;
 	std::unique_ptr<Impl> m_Impl;

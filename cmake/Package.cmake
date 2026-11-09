@@ -8,7 +8,7 @@ install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" COMPONENT D
 set(YUKIRI_PACKAGE_COMPILER "${CMAKE_CXX_COMPILER_ID}")
 set(YUKIRI_PACKAGE_POINTER_SIZE "${CMAKE_SIZEOF_VOID_P}")
 set(YUKIRI_PACKAGE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
-set(YUKIRI_PACKAGE_SYSTEM_LIBRARIES "dwrite;dwmapi;comctl32;kernel32;user32;gdi32;winmm;imm32;ole32;oleaut32;version;uuid;advapi32;setupapi;shell32")
+set(YUKIRI_PACKAGE_SYSTEM_LIBRARIES "dwrite;dwmapi;comctl32;kernel32;user32;gdi32;winmm;imm32;ole32;oleaut32;version;uuid;advapi32;setupapi;shell32;uiautomationcore")
 if(MINGW)
 	list(APPEND YUKIRI_PACKAGE_SYSTEM_LIBRARIES m)
 endif()

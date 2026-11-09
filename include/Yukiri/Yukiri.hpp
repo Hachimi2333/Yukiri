@@ -23,6 +23,7 @@
 #include <Yukiri/Text/Font.hpp>
 #include <Yukiri/Styling/Theme.hpp>
 #include <Yukiri/UI/Widget.hpp>
+#include <Yukiri/UI/AccessibilityInfo.hpp>
 #include <Yukiri/Layout/Grid.hpp>
 #include <Yukiri/Layout/Overlay.hpp>
 #include <Yukiri/Layout/StackPanel.hpp>

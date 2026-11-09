@@ -20,6 +20,7 @@ bool WidgetTree::Within(const Widget* candidate, const Widget* ancestor)
 }
 WidgetTree::~WidgetTree()
 {
+	m_Lifetime.reset();
 	m_Destroying = true;
 	m_ToolTipTimer.Stop();
 	m_Focus = m_Capture = m_Hover = nullptr;
@@ -34,6 +35,7 @@ void WidgetTree::SetRoot(std::unique_ptr<Widget> root)
 	Defer([this, transfer]
 	{
 		m_Root = std::move(*transfer);
+		++m_AccessibilityStructureVersion;
 		if (m_Root) { assert(!m_Root->m_Parent); m_Root->Attach(this); }
 		m_LayoutDirty = m_Dirty = true;
 	});

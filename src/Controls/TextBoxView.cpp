@@ -127,7 +127,7 @@ std::vector<Rect> TextBox::GetTextBounds(std::size_t start, std::size_t end) con
 	PrepareLayout();
 	std::vector<Rect> result;
 	if (IsPassword()) return result;
-	const auto first = m_Impl->m_Visual.ToVisual(std::min(start, end)), last = m_Impl->m_Visual.ToVisual(std::max(start, end));
+	const auto first = m_Impl->ToVisualOffset(std::min(start, end)), last = m_Impl->ToVisualOffset(std::max(start, end), true);
 	const auto bounds = GetBounds(), viewport = m_Impl->m_Viewport;
 	const auto& lines = m_Impl->m_Document.GetLines();
 	const auto visible = m_Impl->m_Document.Visible(m_Impl->m_Scroll.m_Y, viewport.m_Height);
@@ -147,10 +147,11 @@ std::size_t TextBox::OffsetAt(Point point) const
 {
 	PrepareLayout();
 	const auto local = ToLocal(point);
+	if (!std::isfinite(local.m_X) || !std::isfinite(local.m_Y)) return m_Impl->m_Editor.m_Caret;
 	const float y = local.m_Y - m_Impl->m_Viewport.m_Y + m_Impl->m_Scroll.m_Y;
-	const auto index = static_cast<std::size_t>(std::max(0.0f, std::floor(y / m_Impl->m_Document.GetLineHeight())));
+	const auto index = static_cast<std::size_t>(std::clamp(std::floor(y / m_Impl->m_Document.GetLineHeight()), 0.0f, static_cast<float>(m_Impl->m_Document.GetLines().size() - 1)));
 	const auto offset = m_Impl->m_Document.Hit(index, local.m_X - m_Impl->m_Viewport.m_X + m_Impl->m_Scroll.m_X);
-	return m_Impl->m_Visual.ToSource(offset);
+	return m_Impl->ToCommittedOffset(offset);
 }
 std::size_t TextBox::HitTestOffset(Point global) const { return OffsetAt(global); }
 Rect TextBox::VerticalThumb() const

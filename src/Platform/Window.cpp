@@ -23,6 +23,7 @@ Window::Window(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl))
 
 Window::~Window()
 {
+	m_Impl->m_Accessibility.reset();
 	m_Impl->m_FileDialog.reset();
 	m_Impl->m_Events.reset();
 	m_Impl->m_Tree.CloseAllPopups(false);
@@ -62,6 +63,9 @@ Result<Widget*> Window::OpenPopup(Widget* owner, std::unique_ptr<Widget> content
 Window* Window::GetOwner() const noexcept { return m_Impl->m_ParentWindow; }
 void Window::Invalidate() { m_Impl->m_Dirty = m_Impl->m_Tree.m_Dirty = true; }
 bool Window::IsOpen() const noexcept { return m_Impl->m_Close.m_Open; }
+bool Window::IsVisible() const noexcept { return (SDL_GetWindowFlags(m_Impl->m_Native) & SDL_WINDOW_HIDDEN) == 0; }
+bool Window::IsMinimized() const noexcept { return (SDL_GetWindowFlags(m_Impl->m_Native) & SDL_WINDOW_MINIMIZED) != 0; }
+bool Window::IsMaximized() const noexcept { return (SDL_GetWindowFlags(m_Impl->m_Native) & SDL_WINDOW_MAXIMIZED) != 0; }
 const WindowConfig& Window::GetConfig() const noexcept { return m_Impl->m_Config; }
 
 Size Window::GetSize() const
@@ -170,7 +174,7 @@ void Window::Impl::RefreshRate()
 Detail::FramePacer::Time Window::Impl::NextUpdate(Detail::FramePacer::Time now) const
 {
 	if (!m_Close.m_Open || m_Close.m_Pending) return now;
-	if (SDL_GetWindowFlags(m_Native) & SDL_WINDOW_MINIMIZED) return Detail::FramePacer::Time::max();
+	if (SDL_GetWindowFlags(m_Native) & (SDL_WINDOW_MINIMIZED | SDL_WINDOW_HIDDEN)) return Detail::FramePacer::Time::max();
 	if (m_Dirty || m_Tree.m_Dirty || m_Tree.m_Animating) return m_Pacer.GetDeadline();
 	if (m_Tree.m_Focus && m_Tree.m_Focus->AcceptsTextInput())
 	{
@@ -183,7 +187,8 @@ Result<void> Window::Update(bool paced)
 {
 	using Clock = Detail::FramePacer::Clock;
 	const auto start = Clock::now();
-	if (SDL_GetWindowFlags(m_Impl->m_Native) & SDL_WINDOW_MINIMIZED)
+	if (m_Impl->m_Accessibility) m_Impl->m_Accessibility->Flush();
+	if (SDL_GetWindowFlags(m_Impl->m_Native) & (SDL_WINDOW_MINIMIZED | SDL_WINDOW_HIDDEN))
 	{
 		m_Impl->m_Dirty = m_Impl->m_Tree.m_Dirty = m_Impl->m_Tree.m_Animating = false;
 		m_Impl->m_Pacer.Reset();

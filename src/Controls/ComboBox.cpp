@@ -1,4 +1,5 @@
 #include <Yukiri/Controls/ComboBox.hpp>
+#include "UI/AccessibilityTree.hpp"
 #include <Yukiri/Platform/Window.hpp>
 #include <Yukiri/Render/Canvas.hpp>
 #include "Text/Unicode.hpp"
@@ -14,6 +15,8 @@ void ComboBox::SetItems(std::vector<std::string> items)
 	ClosePopup(true);
 	for (auto& item : items) item = Detail::SanitizeUtf8(item, true);
 	m_Items = std::move(items);
+	++m_ItemsGeneration;
+	Detail::AccessibilityTree::StructureChanged(*this);
 	m_Selected = m_Items.empty() ? -1 : std::clamp(m_Selected, 0, static_cast<int>(m_Items.size()) - 1);
 	InvalidateLayout();
 }

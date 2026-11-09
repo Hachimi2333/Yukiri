@@ -6,6 +6,7 @@
 #include <Yukiri/Core/Signal.hpp>
 #include <Yukiri/Styling/Theme.hpp>
 #include <Yukiri/UI/Input.hpp>
+#include <Yukiri/UI/AccessibilityInfo.hpp>
 
 #include <limits>
 #include <chrono>
@@ -19,7 +20,7 @@ namespace Yukiri
 {
 class Canvas;
 class Window;
-namespace Detail { class WidgetTree; }
+namespace Detail { class WidgetTree; class AccessibilityTree; }
 enum class Alignment { Stretch, Start, Center, End };
 
 class Widget
@@ -80,6 +81,8 @@ public:
 	[[nodiscard]] bool IsFocusVisible() const noexcept;
 	[[nodiscard]] Cursor GetCursor() const noexcept;
 	[[nodiscard]] Window* GetWindow() const noexcept;
+	void SetAccessibilityInfo(AccessibilityInfo info);
+	[[nodiscard]] virtual AccessibilityInfo GetAccessibilityInfo() const;
 	void Measure(Size available);
 	void Arrange(Rect slot);
 	void Render(Canvas& canvas);
@@ -145,6 +148,7 @@ protected:
 
 private:
 	friend class Detail::WidgetTree;
+	friend class Detail::AccessibilityTree;
 	friend class Grid;
 	friend class ScrollView;
 	void TranslateSubtree(Point delta);
@@ -156,6 +160,9 @@ private:
 	std::vector<Connection> m_Connections;
 	std::vector<std::shared_ptr<Command>> m_Commands;
 	std::shared_ptr<int> m_Lifetime = std::make_shared<int>(0);
+	std::uint64_t m_AccessibilityId;
+	AccessibilityInfo m_Accessibility;
+	std::weak_ptr<int> m_AccessibilityLabelLifetime;
 	Widget* m_Parent = nullptr;
 	Detail::WidgetTree* m_Tree = nullptr;
 	Rect m_Bounds;

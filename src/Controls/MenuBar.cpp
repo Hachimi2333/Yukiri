@@ -1,4 +1,5 @@
 #include <Yukiri/Controls/MenuBar.hpp>
+#include "UI/AccessibilityTree.hpp"
 #include <Yukiri/Platform/Window.hpp>
 #include <Yukiri/Render/Canvas.hpp>
 #include <algorithm>
@@ -25,6 +26,8 @@ void MenuBar::SetItems(std::vector<Item> items)
 	ClosePopup(true);
 	m_Menu = nullptr;
 	m_Items = std::move(items);
+	++m_ItemsGeneration;
+	Detail::AccessibilityTree::StructureChanged(*this);
 	m_Current = 0;
 	m_Bindings.clear();
 	m_BoundWindow = nullptr;

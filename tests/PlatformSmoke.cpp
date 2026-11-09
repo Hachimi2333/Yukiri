@@ -128,6 +128,8 @@ int main()
 	if ((*first)->GetConfig().m_Decoration != Yukiri::WindowDecoration::Custom || (*first)->GetContentBounds().m_Y <= 0 ||
 		(*second)->GetContentBounds().m_Y != 0) return 22;
 #endif
+	// This GPU check is user-initiated; hidden windows intentionally never present.
+	if (!(*first)->Show() || !(*second)->Show()) return 24;
 	auto primed = application.Poll(false);
 	auto repainted = application.Poll(true);
 	if (!primed || !repainted || !replacement->m_Destroyed || replacement->m_DestroyedEarly ||

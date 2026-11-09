@@ -3,6 +3,7 @@
 #include "WindowState.hpp"
 #include "Core/DispatchQueue.hpp"
 #include "Core/Retire.hpp"
+#include "UiApartment.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -22,6 +23,7 @@ bool ApplicationActive = false;
 
 struct Application::Impl
 {
+	std::unique_ptr<Detail::UiApartment> m_Apartment;
 	ApplicationConfig m_Config;
 	std::vector<std::unique_ptr<Window>> m_Windows;
 	std::unique_ptr<Detail::RenderDevice> m_Device;
@@ -39,6 +41,8 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 {
 	if (ApplicationActive)
 		return std::unexpected(Error{ErrorCode::PlatformInitialization, "Only one Application may be active."});
+	auto apartment = Detail::UiApartment::Create();
+	if (!apartment) return std::unexpected(apartment.error());
 	SDL_SetMainReady();
 	if (!SDL_SetHintWithPriority(SDL_HINT_IME_IMPLEMENTED_UI, "composition", SDL_HINT_OVERRIDE))
 		return std::unexpected(Error{ErrorCode::PlatformInitialization, "Could not enable application-rendered IME composition."});
@@ -47,6 +51,7 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 		return std::unexpected(Error{ErrorCode::PlatformInitialization, SDL_GetError()});
 	ApplicationActive = true;
 	auto impl = std::make_unique<Impl>();
+	impl->m_Apartment = std::move(*apartment);
 	impl->m_Config = config;
 	const auto wakeEvent = SDL_RegisterEvents(1);
 	if (!wakeEvent)
@@ -131,6 +136,9 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 	auto renderer = Detail::WindowRenderer::Create(*m_Impl->m_Device, window->m_Impl->m_Native);
 	if (!renderer) return std::unexpected(renderer.error());
 	window->m_Impl->m_Renderer = std::move(*renderer);
+	auto accessibility = Detail::WindowsAccessibility::Create(window->m_Impl->m_Native, window->m_Impl->m_Tree);
+	if (!accessibility) return std::unexpected(accessibility.error());
+	window->m_Impl->m_Accessibility = std::move(*accessibility);
 	auto* observer = window.get();
 	m_Impl->m_Windows.push_back(std::move(window));
 	return observer;

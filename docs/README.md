@@ -14,6 +14,7 @@
 | [Rendering](Rendering.md) | Vulkan 资源、绘制和同步 |
 | [Text](Text.md) | UTF-8、字体、塑形、编辑和输入法 |
 | [Data](Data.md) | 稳定 ID、共享选择、虚拟化视图与单元格编辑 |
+| [Accessibility](Accessibility.md) | Windows UI Automation、文字范围及用户验收边界 |
 | [Styling](Styling.md) | 类型化主题、样式及交互状态 |
 | [Validation](Validation.md) | 自动化、GPU 与桌面交互验证记录 |
 | [Decisions](Decisions.md) | 已确认的设计选择 |

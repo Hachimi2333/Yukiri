@@ -1,4 +1,5 @@
 #include "ItemViewState.hpp"
+#include "UI/AccessibilityTree.hpp"
 #include <cmath>
 
 namespace Yukiri
@@ -21,6 +22,7 @@ void ListView::SetModel(std::shared_ptr<ItemModel> model)
 		CancelEdit();
 		m_Impl->m_ModelConnection.Disconnect();
 		m_Impl->m_Model = std::move(model);
+		++m_Impl->m_ModelGeneration;
 		const auto selectionMode = m_Impl->m_Selection->GetMode();
 		m_Impl->m_Selection = std::make_shared<SelectionModel>(m_Impl->m_Model);
 		m_Impl->m_Selection->SetMode(selectionMode);
@@ -57,7 +59,7 @@ void ListView::SetSelectionMode(SelectionModel::Mode mode) { m_Impl->m_Selection
 Result<void> ListView::SetRootItem(ItemId item)
 {
 	if (item && (!m_Impl->m_Model || !m_Impl->m_Model->Contains(item))) return std::unexpected(Error{ErrorCode::InvalidArgument, "The root item does not exist."});
-	Dispatch([&] { CancelEdit(); m_Impl->m_Root = item; RebuildRows(); SetOffset({}); });
+	Dispatch([&] { CancelEdit(); ++m_Impl->m_ModelGeneration; m_Impl->m_Root = item; RebuildRows(); SetOffset({}); });
 	return {};
 }
 ItemId ListView::GetRootItem() const noexcept { return m_Impl->m_Root; }
@@ -81,6 +83,7 @@ std::optional<std::size_t> ListView::GetRowIndex(ItemId item) const
 }
 void ListView::RebuildRows()
 {
+	Detail::AccessibilityTree::StructureChanged(*this);
 	m_Impl->m_Rows.clear(); m_Impl->m_Indices.clear();
 	if (m_Impl->m_Model)
 	{
@@ -95,7 +98,7 @@ void ListView::RebuildRows()
 			if (!id || m_Impl->m_Indices.contains(id)) continue;
 			const auto children = m_Impl->m_Kind == ViewKind::Tree ? m_Impl->m_Model->GetRowCount(id) : 0;
 			m_Impl->m_Indices.emplace(id, m_Impl->m_Rows.size());
-			m_Impl->m_Rows.push_back({id, frame.m_Depth, children > 0});
+			m_Impl->m_Rows.push_back({id, frame.m_Depth, children > 0, frame.m_Row - 1});
 			if (children && m_Impl->m_Expanded.contains(id)) stack.push_back({id, 0, children, frame.m_Depth + 1});
 		}
 		m_Impl->m_Columns.resize(m_Impl->m_Model->GetColumnCount(), 180);

@@ -21,6 +21,7 @@ public:
 	[[nodiscard]] bool IsSelected(ItemId item) const;
 	[[nodiscard]] const std::vector<ItemId>& GetSelected() const noexcept;
 	[[nodiscard]] ItemId GetCurrent() const noexcept;
+	[[nodiscard]] std::uint64_t GetVersion() const noexcept;
 	Signal<> m_Changed;
 	Signal<ItemId> m_CurrentChanged;
 private:
@@ -33,5 +34,6 @@ private:
 	std::unordered_set<ItemId> m_Index;
 	ItemId m_Current = 0;
 	Mode m_Mode = Mode::Single;
+	std::uint64_t m_Version = 0;
 };
 }

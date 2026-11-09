@@ -7,10 +7,28 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <atomic>
 
 namespace Yukiri
 {
-Widget::Widget() = default;
+namespace { std::atomic<std::uint64_t> NextAccessibilityId{1}; }
+Widget::Widget() : m_AccessibilityId(NextAccessibilityId.fetch_add(1, std::memory_order_relaxed)) {}
+void Widget::SetAccessibilityInfo(AccessibilityInfo info)
+{
+	info.m_Name = Detail::NormalizeText(info.m_Name, true);
+	info.m_Description = Detail::NormalizeText(info.m_Description, true);
+	info.m_AutomationId = Detail::NormalizeText(info.m_AutomationId, true);
+	m_AccessibilityLabelLifetime = info.m_Label ? info.m_Label->ObserveLifetime() : std::weak_ptr<int>{};
+	if (m_Tree && m_Accessibility.m_Hidden != info.m_Hidden) ++m_Tree->m_AccessibilityStructureVersion;
+	m_Accessibility = std::move(info);
+	InvalidatePaint();
+}
+AccessibilityInfo Widget::GetAccessibilityInfo() const
+{
+	auto info = m_Accessibility;
+	if (m_AccessibilityLabelLifetime.expired()) info.m_Label = nullptr;
+	return info;
+}
 Widget::~Widget()
 {
 	m_Lifetime.reset();
@@ -37,6 +55,7 @@ Widget& Widget::InsertChild(std::size_t index, std::unique_ptr<Widget> child)
 	child->Attach(m_Tree);
 	auto& observer = *child;
 	m_Children.insert(m_Children.begin() + static_cast<std::ptrdiff_t>(index), std::move(child));
+	if (m_Tree) ++m_Tree->m_AccessibilityStructureVersion;
 	InvalidateLayout();
 	return observer;
 }
@@ -47,6 +66,7 @@ void Widget::RemoveChild(Widget& child)
 	{
 		if (lifetime.expired()) return;
 		Detail::RetireMatching(m_Children, [childPointer](const auto& owned) { return &owned == childPointer; });
+		if (m_Tree) ++m_Tree->m_AccessibilityStructureVersion;
 		InvalidateLayout();
 	};
 	if (m_Tree) m_Tree->Defer(std::move(remove)); else remove();
@@ -63,6 +83,7 @@ void Widget::ClearChildren()
 		{
 			return std::ranges::any_of(children, [&](const auto& entry) { return !entry.second.expired() && entry.first == &owned; });
 		});
+		if (m_Tree) ++m_Tree->m_AccessibilityStructureVersion;
 		InvalidateLayout();
 	};
 	if (m_Tree) m_Tree->Defer(std::move(clear)); else clear();
@@ -90,6 +111,7 @@ void Widget::SetVisible(bool visible)
 {
 	if (m_Visible == visible) return;
 	m_Visible = visible;
+	if (m_Tree) ++m_Tree->m_AccessibilityStructureVersion;
 	if (!visible) { m_AnimationRequested = false; m_HasArranged = false; }
 	InvalidateLayout();
 	if (!visible && m_Tree) m_Tree->Forget(this);

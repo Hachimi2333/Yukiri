@@ -41,6 +41,7 @@ int main(int argc, char** argv)
 			Yukiri::WindowDecoration::Native : Yukiri::WindowDecoration::Custom;
 		auto second = YukiriDemo::OpenGallery(app, otherDecoration, Yukiri::ThemeMode::Dark, false);
 		if (!second) { std::cerr << second.error().m_Message << '\n'; return 3; }
+		if (!(*mainWindow)->Show() || !(*second)->Show()) return 14;
 		if (!YukiriDemo::CheckWindowIcons()) { std::cerr << "Demo icon resources or window icons are missing.\n"; return 13; }
 		for (int frame = 0; frame < 70; ++frame)
 		{

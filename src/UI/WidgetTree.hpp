@@ -58,6 +58,9 @@ public:
 	Signal<KeyEvent&> m_CommandBindings;
 
 private:
+	friend class AccessibilityTree;
+	std::shared_ptr<int> m_Lifetime = std::make_shared<int>(0);
+	std::uint64_t m_AccessibilityStructureVersion = 0;
 	class Dispatch
 	{
 	public:

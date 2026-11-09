@@ -29,6 +29,7 @@ protected:
 	void OnBringIntoView(Rect& rectangle) override;
 	[[nodiscard]] Rect GetChildrenClip() const noexcept override;
 private:
+	friend class Detail::AccessibilityTree;
 	[[nodiscard]] Rect VerticalThumb() const;
 	[[nodiscard]] Rect HorizontalThumb() const;
 	[[nodiscard]] Point ClampOffset(Point offset) const;

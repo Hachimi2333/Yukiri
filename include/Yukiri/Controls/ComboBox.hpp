@@ -26,6 +26,8 @@ protected:
 	Size OnMeasure(Size available) override;
 	void OnPaint(Canvas& canvas) override;
 private:
+	friend class Detail::AccessibilityTree;
+	std::uint64_t m_ItemsGeneration = 0;
 	void Open();
 	void PaintPopup(Canvas& canvas, float progress);
 	[[nodiscard]] Rect VisiblePopup() const;

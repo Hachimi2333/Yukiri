@@ -138,3 +138,7 @@ ScrollView 默认平滑处理滚轮与现有方向键 / Home / End，支持小�
 ComboBox 退出动画期间已不再接收下拉输入。窗口变化、焦点丢失、滚动或所属控件销毁会直接撤销弹出层。自定义控件可使用带 progress 参数的 ShowPopup 绘制回调；回调与窗口内弹出层共享安全生命周期。
 
 键盘焦点显示与输入焦点分开：HasFocus() 表示实际输入焦点，IsFocusVisible() 仅在 Tab / Shift+Tab 导航模式且当前控件有焦点时返回 true。鼠标按下（含下拉层）隐藏焦点提示；移动、滚轮和文字输入不改变模式。RequestFocus() 继承窗口模式。自定义控件重写受保护的 GetFocusBounds() 返回局部焦点区域，并使用 PaintFocus() 绘制；键盘获取焦点按该区域滚入视口，显式 BringIntoView() 仍使用整个控件范围。
+
+## Windows UI Automation
+
+使用 Widget::SetAccessibilityInfo 设置应用名称、说明、AutomationId 或标签关联。内置控件自动暴露对应模式，密码字段禁止无障碍明文；自定义控件可覆盖 GetAccessibilityInfo。应用线程需要 COM STA，后台线程通过 Dispatcher 投递 UI 操作。详细模式、虚拟节点和验收边界见 [无障碍](Accessibility.md)。

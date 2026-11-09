@@ -64,6 +64,7 @@ protected:
 	void OnPaint(Canvas& canvas) override;
 
 private:
+	friend class Detail::AccessibilityTree;
 	struct Impl;
 	std::unique_ptr<Impl> m_Impl;
 	void RefreshCaret();

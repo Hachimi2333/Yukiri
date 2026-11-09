@@ -10,6 +10,7 @@ void SelectionModel::SetModel(std::shared_ptr<ItemModel> model)
 	AssertThread();
 	m_Connection.Disconnect();
 	m_Model = std::move(model);
+	++m_Version;
 	if (m_Model) m_Connection = m_Model->m_Changed.Connect([this](const auto& change)
 	{
 		if (change.m_Kind == ItemModel::ChangeKind::Reset || change.m_Kind == ItemModel::ChangeKind::Removed) Prune(change.m_Kind == ItemModel::ChangeKind::Reset);
@@ -24,6 +25,7 @@ void SelectionModel::SetMode(Mode mode)
 	if (m_Mode == mode) return;
 	const auto keepAlive = weak_from_this().lock();
 	m_Mode = mode;
+	++m_Version;
 	auto selected = m_Selected;
 	if (mode == Mode::Single && IsSelected(m_Current)) selected = {m_Current};
 	SetSelected(std::move(selected), m_Current);
@@ -31,6 +33,7 @@ void SelectionModel::SetMode(Mode mode)
 }
 const std::vector<ItemId>& SelectionModel::GetSelected() const noexcept { return m_Selected; }
 ItemId SelectionModel::GetCurrent() const noexcept { return m_Current; }
+std::uint64_t SelectionModel::GetVersion() const noexcept { return m_Version; }
 bool SelectionModel::IsSelected(ItemId item) const { return m_Index.contains(item); }
 void SelectionModel::Clear() { SetSelected({}, m_Current); }
 void SelectionModel::SetSelected(std::vector<ItemId> items, ItemId current)
@@ -52,6 +55,7 @@ void SelectionModel::SetSelected(std::vector<ItemId> items, ItemId current)
 	const bool changed = m_Selected != selected;
 	const bool currentChanged = m_Current != current;
 	m_Selected = std::move(selected); m_Index = std::move(index); m_Current = current;
+	if (changed || currentChanged) ++m_Version;
 	if (currentChanged) m_CurrentChanged.Emit(current);
 	if (changed) m_Changed.Emit();
 }
@@ -68,6 +72,7 @@ void SelectionModel::SetCurrent(ItemId current)
 	if (m_Current == current) return;
 	const auto keepAlive = weak_from_this().lock();
 	m_Current = current;
+	++m_Version;
 	m_CurrentChanged.Emit(current);
 }
 void SelectionModel::Prune(bool reset)

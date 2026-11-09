@@ -29,6 +29,8 @@ target_sources(Yukiri PRIVATE src/Text/TextSearch.cpp src/Text/DocumentLayout.cp
 target_sources(Yukiri PRIVATE src/Controls/NumberBox.cpp)
 target_sources(Yukiri PRIVATE src/Data/ItemModel.cpp src/Data/StandardItemModel.cpp src/Data/SelectionModel.cpp)
 target_sources(Yukiri PRIVATE src/Controls/ListView.cpp src/Controls/ItemViewPaint.cpp src/Controls/ItemViewInput.cpp src/Controls/ItemViewEditing.cpp)
+target_sources(Yukiri PRIVATE src/Platform/UiApartment.cpp src/UI/AccessibilityTree.cpp src/UI/AccessibilityDescribe.cpp src/UI/AccessibilityActions.cpp src/UI/AccessibilityText.cpp)
+target_sources(Yukiri PRIVATE src/Platform/WindowsAccessibility.cpp)
 target_sources(Yukiri PRIVATE src/UI/ToolTips.cpp src/Controls/ToolTip.cpp src/Controls/ToolBar.cpp src/Controls/StatusBar.cpp src/Controls/Separator.cpp)
 target_sources(Yukiri PRIVATE src/Render/RenderDevice.cpp src/Render/Resources.cpp
 	src/Render/WindowRenderer.cpp src/Render/Pipeline.cpp src/Render/Vma.cpp)
@@ -41,7 +43,11 @@ target_sources(Yukiri PRIVATE src/Controls/Label.cpp src/Controls/Button.cpp src
 	src/Controls/RadioButton.cpp src/Controls/ToggleSwitch.cpp src/Controls/Slider.cpp
 	src/Controls/ProgressBar.cpp src/Controls/ComboBox.cpp src/Controls/TabView.cpp src/Controls/ScrollView.cpp)
 if(WIN32)
-	target_link_libraries(Yukiri PRIVATE dwrite dwmapi comctl32 ole32 shell32 uuid)
+	target_sources(Yukiri PRIVATE src/Platform/AutomationSupport.cpp src/Platform/AutomationContext.cpp src/Platform/AutomationProvider.cpp
+		src/Platform/AutomationProperties.cpp src/Platform/AutomationControlPatterns.cpp src/Platform/AutomationDataPatterns.cpp
+		src/Platform/AutomationWindowPattern.cpp src/Platform/AutomationTextRange.cpp src/Platform/AutomationTextNavigation.cpp
+		src/Platform/AutomationTextQueries.cpp src/Platform/AutomationTextProvider.cpp src/Platform/AutomationEvents.cpp)
+	target_link_libraries(Yukiri PRIVATE dwrite dwmapi comctl32 ole32 oleaut32 shell32 uuid uiautomationcore)
 	target_compile_definitions(Yukiri PRIVATE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
 endif()
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
@@ -124,6 +130,10 @@ if(YUKIRI_BUILD_TESTS)
 	target_sources(YukiriTests PRIVATE tests/HeadlessRuntime.cpp)
 	target_sources(YukiriTests PRIVATE tests/EditingTests.cpp)
 	target_sources(YukiriTests PRIVATE tests/DataTests.cpp)
+	target_sources(YukiriTests PRIVATE tests/AccessibilityTests.cpp)
+	if(WIN32)
+		target_sources(YukiriTests PRIVATE tests/AutomationProviderTests.cpp)
+	endif()
 	target_compile_definitions(YukiriTests PRIVATE YUKIRI_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 	target_include_directories(YukiriTests PRIVATE src)
 	target_include_directories(YukiriTests PRIVATE third_party/freetype/include "${CMAKE_CURRENT_BINARY_DIR}/third_party/freetype/include" third_party/harfbuzz/src)

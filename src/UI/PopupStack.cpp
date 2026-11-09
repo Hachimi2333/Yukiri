@@ -103,6 +103,7 @@ void WidgetTree::SetPopup(Widget* owner, std::function<void(Canvas&, float)> pai
 		m_Popups.push_back(std::move(created));
 	}
 	popup->m_Closing = false;
+	++m_AccessibilityStructureVersion;
 	popup->m_Paint = std::move(paint);
 	popup->m_Pointer = std::move(pointer);
 	popup->m_Key = std::move(key);
@@ -152,6 +153,7 @@ Result<Widget*> WidgetTree::OpenPopup(Widget* owner, std::unique_ptr<Widget> con
 	if (m_Focus) created->m_PreviousFocusLifetime = m_Focus->ObserveLifetime();
 	auto* observer = created->m_Content.get();
 	m_Popups.push_back(std::move(created));
+	++m_AccessibilityStructureVersion;
 	if (interactive)
 	{
 		CancelPointer();
@@ -166,6 +168,7 @@ void WidgetTree::CloseFrom(std::size_t first, bool immediate, bool notify)
 {
 	if (first >= m_Popups.size()) return;
 	const auto ancestor = m_Popups[first]->m_Id;
+	if (!m_Popups[first]->m_Closing) ++m_AccessibilityStructureVersion;
 	bool restore = false;
 	for (const auto& popup : m_Popups)
 		if (IsPopupDescendant(*popup, ancestor) && popup->m_Content && Within(m_Focus, popup->m_Content.get())) restore = true;
