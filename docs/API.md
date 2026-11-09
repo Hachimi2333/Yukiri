@@ -123,6 +123,10 @@ NumberBox 通过 GetEditor 提供文本输入，SetRange / SetStep / SetFormat �
 
 单选组以同级相同 group 标识组织，Tab 进入已选项（未选时进入首个有效项），方向键循环跳过隐藏 / 禁用项并选择。Slider::SetStep 设置键盘步长及拖动吸附，Home / End 到端点，Shift 或 PageUp / PageDown 扩大增量。ComboBox 关闭时方向键 / Home / End 直接选择，Alt+Down / F4 / Space / Enter 展开；列表支持 PageUp / PageDown，Escape / F4 / Alt+Up 退出。ProgressBar::SetIndeterminate 显示循环进度，禁用动效时显示静态标记。
 
+## 数据模型与视图
+
+数据接口和 ListView / TreeView / TableView 的使用见 [数据模型文档](Data.md)。模型以稳定 ID 共享，选择可以在多视图之间复用，编辑器按需创建。
+
 ## 动画与平滑滚动
 
 ApplicationConfig::m_Motion 设置默认动效，Theme::m_Motion 支持局部覆盖。使用 m_Enabled=false 可整体关闭该作用域的动效；非正时长立即完成。初始属性直接显示，后续状态变化使用短过渡，模型 getter 与通知始终立即反映目标值。

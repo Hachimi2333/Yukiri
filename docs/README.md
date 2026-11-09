@@ -13,6 +13,7 @@
 | [API](API.md) | 应用、窗口、控件、布局及事件使用 |
 | [Rendering](Rendering.md) | Vulkan 资源、绘制和同步 |
 | [Text](Text.md) | UTF-8、字体、塑形、编辑和输入法 |
+| [Data](Data.md) | 稳定 ID、共享选择、虚拟化视图与单元格编辑 |
 | [Styling](Styling.md) | 类型化主题、样式及交互状态 |
 | [Validation](Validation.md) | 自动化、GPU 与桌面交互验证记录 |
 | [Decisions](Decisions.md) | 已确认的设计选择 |

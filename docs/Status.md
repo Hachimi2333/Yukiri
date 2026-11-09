@@ -8,6 +8,8 @@
 
 0.2 编辑阶段加入 TextArea 多行与段落缓存、字面查找替换、合并撤销、TextBox 密码模式、NumberBox，以及单选组、ComboBox、Slider 与不确定进度的标准键盘行为。CPU 几何 / 模型覆盖和真实 IME / 剪贴板验收分别记录。
 
+0.2 数据阶段加入 ItemModel / StandardItemModel / SelectionModel、统一行高的虚拟化 ListView / TreeView / TableView、稳定 ID 选择、排序、列宽和基础文本 / 勾选编辑。十万行 CPU 检查覆盖热滚动访问量与控件数量，GPU 和实际体验仍待验收。
+
 | 阶段 | 交付状态 |
 |---|---|
 | 开发规范与文档 | AGENTS.md、FUTURE.md 与 docs 已建立并持续维护 |

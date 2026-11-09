@@ -10,7 +10,7 @@
 - [x] 布局：Border / WrapPanel / SplitPanel、约束换行与文字对齐（CPU / 编译验证）。
 - [x] 应用交互：分层弹出内容、菜单、工具栏、提示、模态及原生文件对话框（CPU / 编译验证；系统界面与真实交互待用户验收）。
 - [x] 编辑：TextArea、查找替换、密码模式、NumberBox 及现有控件交互补齐（CPU / 编译验证；真实 IME、剪贴板与视觉待用户验收）。
-- [ ] 数据：ItemModel / StandardItemModel / SelectionModel、虚拟化列表 / 树 / 表格。
+- [x] 数据：ItemModel / StandardItemModel / SelectionModel、虚拟化列表 / 树 / 表格（CPU / 编译验证；真实交互待用户验收）。
 - [ ] 无障碍：Windows UI Automation、文字范围与虚拟化数据语义。
 - [ ] Demo：文件编辑闭环、共享数据管理、后台加载进度。
 - [ ] 交付：四套配置、安装消费、双语说明及用户验收清单。

@@ -11,7 +11,7 @@
 
 namespace Yukiri
 {
-namespace Detail { class DrawList; class TextEngine; class WindowChrome; }
+namespace Detail { class DrawList; class TextEngine; class WindowChrome; struct CanvasFactory; }
 class Window;
 class Image;
 
@@ -37,6 +37,7 @@ private:
 	friend class Window;
 	friend class Widget;
 	friend class Detail::WindowChrome;
+	friend struct Detail::CanvasFactory;
 	void DrawImage(Rect rectangle, std::uint32_t texture);
 	struct State { Point m_Offset; std::vector<Rect> m_Clips; Font m_Font; float m_Opacity = 1; };
 	Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text = nullptr, float scale = 1);

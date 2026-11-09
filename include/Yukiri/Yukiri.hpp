@@ -39,6 +39,12 @@
 #include <Yukiri/Controls/TextBox.hpp>
 #include <Yukiri/Controls/TextArea.hpp>
 #include <Yukiri/Controls/NumberBox.hpp>
+#include <Yukiri/Controls/ListView.hpp>
+#include <Yukiri/Controls/TreeView.hpp>
+#include <Yukiri/Controls/TableView.hpp>
+#include <Yukiri/Data/ItemModel.hpp>
+#include <Yukiri/Data/StandardItemModel.hpp>
+#include <Yukiri/Data/SelectionModel.hpp>
 #include <Yukiri/Controls/ComboBox.hpp>
 #include <Yukiri/Controls/TabView.hpp>
 #include <Yukiri/Controls/ScrollView.hpp>
