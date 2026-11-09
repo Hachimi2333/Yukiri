@@ -89,6 +89,12 @@ Command 使用 m_Executed 执行动作，m_Changed 通知文字、启用、勾�
 
 Window 提供 Show / Hide / Activate / SetOwner，所属关系禁止成环；所有权观察指针在所属窗口关闭时清空。m_SizeChanged / m_StateChanged 报告平台窗口通知，m_FilesDropped 提供一批 filesystem::path。真实平台行为需要用户启动桌面验收。按钮 Space 在释放时激活，Enter 在按下时激活；窗口重新获得焦点时恢复仍然有效的最近焦点，但不主动显示键盘焦点框。
 
+## 图片
+
+Image 是可复制的共享不可变资源，Load 接受 filesystem::path，FromMemory 接受编码字节，FromRgba 接受精确的 width * height * 4 字节。GetPixels 返回资源持有期间有效的直通 Alpha RGBA8 视图；SVG 的该视图为原始尺寸栅格结果，绘制时另按 DPI 重栅格化。支持 PNG / JPEG / BMP / ICO 与静态 SVG，不支持动画图像；SVG 使用自包含文档，不承诺外部资源或完整浏览器 SVG 特性。
+
+ImageView 的 Stretch::None / Uniform / UniformToFill / Fill 分别表示原尺寸、等比适应、等比填充裁剪及拉伸。Canvas::DrawImage(image, rectangle, opacity) 绘制到局部矩形并遵循当前裁剪。CPU 图片可独立于窗口加载；GPU 资源只在应用线程绘制时创建。编码输入上限 64MiB，尺寸每轴最多 16384，解码像素最多 64M（256MiB RGBA）；栅格格式在调用解码器前检查尺寸，GPU 另检查设备限制。
+
 ## 动画与平滑滚动
 
 ApplicationConfig::m_Motion 设置默认动效，Theme::m_Motion 支持局部覆盖。使用 m_Enabled=false 可整体关闭该作用域的动效；非正时长立即完成。初始属性直接显示，后续状态变化使用短过渡，模型 getter 与通知始终立即反映目标值。

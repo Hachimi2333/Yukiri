@@ -25,6 +25,7 @@ private:
 		VkFence m_Fence = VK_NULL_HANDLE;
 		Buffer m_Vertices;
 		Buffer m_Uploads;
+		std::vector<std::shared_ptr<Texture>> m_Textures;
 	};
 	WindowRenderer(RenderDevice& device, SDL_Window* window) : m_Device(device), m_Window(window) {}
 	Result<void> Initialize();

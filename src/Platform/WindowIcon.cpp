@@ -1,4 +1,5 @@
 #include "WindowIcon.hpp"
+#include "Render/ImageColor.hpp"
 #include "Render/RenderDevice.hpp"
 #include <algorithm>
 #include <cstring>
@@ -93,6 +94,7 @@ Result<std::optional<std::uint32_t>> GetWindowIcon(SDL_Window* window, RenderDev
 	auto created = device.CreateTexture(static_cast<std::uint32_t>(pixels), static_cast<std::uint32_t>(pixels), true);
 	if (!created) return std::unexpected(created.error());
 	device.m_Textures[*created]->m_Pixels = std::move(*rgba);
+	PrepareImageUpload(device.m_Textures[*created]->m_Pixels);
 	device.m_ImageCache.emplace(key, *created);
 	return std::optional<std::uint32_t>{*created};
 }

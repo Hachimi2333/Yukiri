@@ -5,7 +5,8 @@
 ## 实施进度
 
 - [x] 应用：Dispatcher / Timer、命令、完整输入、可取消关闭、所属窗口及通知（CPU / 编译验证；平台行为待用户验收）。
-- [ ] 资源：SDL_image / LunaSVG、公共图片、字体选择、GPU 资源回收。
+- [x] 图片：SDL_image / LunaSVG、公共图片、透明度与 GPU 资源回收（CPU / 编译验证；GPU 待用户验收）。
+- [ ] 字体：字体族、字重、斜体与对应回退 / 缓存。
 - [ ] 布局：Border / WrapPanel / SplitPanel、约束换行与文字对齐。
 - [ ] 应用交互：分层弹出内容、菜单、工具栏、提示、模态及原生文件对话框。
 - [ ] 编辑：TextArea、查找替换、密码模式、NumberBox 及现有控件交互补齐。

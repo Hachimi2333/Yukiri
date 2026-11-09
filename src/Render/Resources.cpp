@@ -4,6 +4,44 @@
 
 namespace Yukiri::Detail
 {
+Texture::~Texture()
+{
+	if (m_Set) vkFreeDescriptorSets(m_Device, m_Pool, 1, &m_Set);
+	if (m_View) vkDestroyImageView(m_Device, m_View, nullptr);
+	if (m_Image) vmaDestroyImage(m_Allocator, m_Image, m_Allocation);
+}
+Result<void> RenderDevice::AllocateTextureSet(Texture& texture)
+{
+	auto allocate = [&](VkDescriptorPool pool)
+	{
+		auto info = VkInfo<VkDescriptorSetAllocateInfo>(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO);
+		info.descriptorPool = pool;
+		info.descriptorSetCount = 1;
+		info.pSetLayouts = &m_SetLayout;
+		return vkAllocateDescriptorSets(m_Device, &info, &texture.m_Set);
+	};
+	for (auto pool : m_DescriptorPools)
+	{
+		const auto result = allocate(pool);
+		if (result == VK_SUCCESS) { texture.m_Pool = pool; return {}; }
+		if (result != VK_ERROR_OUT_OF_POOL_MEMORY && result != VK_ERROR_FRAGMENTED_POOL)
+			return GraphicsError("Allocate texture descriptor", result);
+	}
+	VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512};
+	auto info = VkInfo<VkDescriptorPoolCreateInfo>(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO);
+	info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	info.maxSets = 512;
+	info.poolSizeCount = 1;
+	info.pPoolSizes = &size;
+	VkDescriptorPool pool = VK_NULL_HANDLE;
+	auto result = vkCreateDescriptorPool(m_Device, &info, nullptr, &pool);
+	if (result != VK_SUCCESS) return GraphicsError("Create texture descriptor pool", result);
+	m_DescriptorPools.push_back(pool);
+	result = allocate(pool);
+	if (result != VK_SUCCESS) return GraphicsError("Allocate texture descriptor", result);
+	texture.m_Pool = pool;
+	return {};
+}
 Result<Buffer> RenderDevice::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage)
 {
 	Buffer buffer;
@@ -29,7 +67,13 @@ void RenderDevice::DestroyBuffer(Buffer& buffer)
 
 Result<std::uint32_t> RenderDevice::CreateTexture(std::uint32_t width, std::uint32_t height, bool rgba)
 {
-	auto texture = std::make_unique<Texture>();
+	VkPhysicalDeviceProperties properties{};
+	vkGetPhysicalDeviceProperties(m_Physical, &properties);
+	if (!width || !height || width > properties.limits.maxImageDimension2D || height > properties.limits.maxImageDimension2D)
+		return std::unexpected(Error{ErrorCode::ResourceLoading, "Texture dimensions exceed the GPU limit."});
+	auto texture = std::make_shared<Texture>();
+	texture->m_Device = m_Device;
+	texture->m_Allocator = m_Allocator;
 	texture->m_Width = width;
 	texture->m_Height = height;
 	texture->m_BytesPerPixel = rgba ? 4 : 1;
@@ -55,20 +99,10 @@ Result<std::uint32_t> RenderDevice::CreateTexture(std::uint32_t width, std::uint
 	result = vkCreateImageView(m_Device, &viewInfo, nullptr, &texture->m_View);
 	if (result != VK_SUCCESS)
 	{
-		vmaDestroyImage(m_Allocator, texture->m_Image, texture->m_Allocation);
 		return GraphicsError("vkCreateImageView", result);
 	}
-	auto setInfo = VkInfo<VkDescriptorSetAllocateInfo>(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO);
-	setInfo.descriptorPool = m_DescriptorPool;
-	setInfo.descriptorSetCount = 1;
-	setInfo.pSetLayouts = &m_SetLayout;
-	result = vkAllocateDescriptorSets(m_Device, &setInfo, &texture->m_Set);
-	if (result != VK_SUCCESS)
-	{
-		vkDestroyImageView(m_Device, texture->m_View, nullptr);
-		vmaDestroyImage(m_Allocator, texture->m_Image, texture->m_Allocation);
-		return GraphicsError("vkAllocateDescriptorSets", result);
-	}
+	auto allocated = AllocateTextureSet(*texture);
+	if (!allocated) return std::unexpected(allocated.error());
 	VkDescriptorImageInfo descriptor{m_Sampler, texture->m_View, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 	auto write = VkInfo<VkWriteDescriptorSet>(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
 	write.dstSet = texture->m_Set;
@@ -77,8 +111,18 @@ Result<std::uint32_t> RenderDevice::CreateTexture(std::uint32_t width, std::uint
 	write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	write.pImageInfo = &descriptor;
 	vkUpdateDescriptorSets(m_Device, 1, &write, 0, nullptr);
-	const auto index = static_cast<std::uint32_t>(m_Textures.size());
-	m_Textures.push_back(std::move(texture));
+	std::uint32_t index;
+	if (m_FreeTextureSlots.empty())
+	{
+		index = static_cast<std::uint32_t>(m_Textures.size());
+		m_Textures.push_back(std::move(texture));
+	}
+	else
+	{
+		index = m_FreeTextureSlots.back();
+		m_FreeTextureSlots.pop_back();
+		m_Textures[index] = std::move(texture);
+	}
 	return index;
 }
 
@@ -96,12 +140,12 @@ void Texture::MarkDirty(int x, int y, std::uint32_t width, std::uint32_t height)
 	m_Dirty = true;
 }
 
-Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer& staging)
+Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer& staging, std::vector<std::shared_ptr<Texture>>& retained)
 {
 	VkDeviceSize required = 0;
 	for (const auto& texture : m_Textures)
 	{
-		if (!texture->m_Dirty) continue;
+		if (!texture || !texture->m_Dirty) continue;
 		if (!texture->m_Initialized) texture->m_DirtyBounds = {{0, 0}, {texture->m_Width, texture->m_Height}};
 		required = (required + 3) & ~VkDeviceSize(3);
 		required += static_cast<VkDeviceSize>(texture->m_DirtyBounds.extent.width) * texture->m_DirtyBounds.extent.height * texture->m_BytesPerPixel;
@@ -117,7 +161,8 @@ Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer&
 	VkDeviceSize offset = 0;
 	for (const auto& texture : m_Textures)
 	{
-		if (!texture->m_Dirty) continue;
+		if (!texture || !texture->m_Dirty) continue;
+		retained.push_back(texture);
 		const auto bounds = texture->m_DirtyBounds;
 		const auto rowBytes = static_cast<std::size_t>(bounds.extent.width) * texture->m_BytesPerPixel;
 		offset = (offset + 3) & ~VkDeviceSize(3);
@@ -141,6 +186,7 @@ Result<void> RenderDevice::RecordTextureUploads(VkCommandBuffer command, Buffer&
 			VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
 		offset += static_cast<VkDeviceSize>(bounds.extent.width) * bounds.extent.height * texture->m_BytesPerPixel;
 		texture->m_Initialized = true;
+		if (texture->m_DiscardPixelsAfterUpload) std::vector<unsigned char>().swap(texture->m_Pixels);
 		texture->m_Dirty = false;
 		texture->m_DirtyBounds = {};
 	}

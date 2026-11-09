@@ -166,6 +166,8 @@ Result<bool> WindowRenderer::TryBeginFrame()
 	auto result = vkGetFenceStatus(m_Device.m_Device, frame.m_Fence);
 	if (result == VK_NOT_READY) return false;
 	if (result != VK_SUCCESS) return GraphicsError("Frame fence status", result);
+	frame.m_Textures.clear();
+	m_Device.CollectImageTextures();
 	result = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain, 0, frame.m_Acquired, VK_NULL_HANDLE, &m_AcquiredImage);
 	if (result == VK_NOT_READY || result == VK_TIMEOUT) return false;
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -185,6 +187,7 @@ Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color 
 	const bool suboptimal = m_NeedsRetry;
 	auto& frame = m_Frames[m_Frame];
 	const auto imageIndex = m_AcquiredImage;
+	for (const auto& batch : list.m_Batches) frame.m_Textures.push_back(m_Device.m_Textures.at(batch.m_Texture));
 	const int width = static_cast<int>(m_Extent.width);
 	const int height = static_cast<int>(m_Extent.height);
 	VkResult result;
@@ -206,7 +209,7 @@ Result<void> WindowRenderer::Draw(const DrawList& list, Size logicalSize, Color 
 	begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	result = vkBeginCommandBuffer(frame.m_Command, &begin);
 	if (result != VK_SUCCESS) return GraphicsError("Begin frame", result);
-	auto uploads = m_Device.RecordTextureUploads(frame.m_Command, frame.m_Uploads);
+	auto uploads = m_Device.RecordTextureUploads(frame.m_Command, frame.m_Uploads, frame.m_Textures);
 	if (!uploads) return uploads;
 	ImageBarrier(frame.m_Command, m_Images[imageIndex],
 		m_Initialized[imageIndex] ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_UNDEFINED,

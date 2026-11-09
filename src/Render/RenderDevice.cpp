@@ -155,13 +155,6 @@ Result<void> RenderDevice::Initialize(SDL_Window* window, bool validation)
 	layoutInfo.pBindings = &binding;
 	result = vkCreateDescriptorSetLayout(m_Device, &layoutInfo, nullptr, &m_SetLayout);
 	if (result != VK_SUCCESS) return GraphicsError("vkCreateDescriptorSetLayout", result);
-	VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512};
-	auto descriptorInfo = VkInfo<VkDescriptorPoolCreateInfo>(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO);
-	descriptorInfo.maxSets = 512;
-	descriptorInfo.poolSizeCount = 1;
-	descriptorInfo.pPoolSizes = &poolSize;
-	result = vkCreateDescriptorPool(m_Device, &descriptorInfo, nullptr, &m_DescriptorPool);
-	if (result != VK_SUCCESS) return GraphicsError("vkCreateDescriptorPool", result);
 	VkPushConstantRange pushRange{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 2};
 	auto pipelineInfo = VkInfo<VkPipelineLayoutCreateInfo>(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
 	pipelineInfo.setLayoutCount = 1;
@@ -190,14 +183,10 @@ RenderDevice::~RenderDevice()
 	if (m_Device)
 	{
 		vkDeviceWaitIdle(m_Device);
-		for (const auto& texture : m_Textures)
-		{
-			if (texture->m_View) vkDestroyImageView(m_Device, texture->m_View, nullptr);
-			if (texture->m_Image) vmaDestroyImage(m_Allocator, texture->m_Image, texture->m_Allocation);
-		}
+		m_Textures.clear();
 		if (m_Sampler) vkDestroySampler(m_Device, m_Sampler, nullptr);
 		if (m_PipelineLayout) vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
-		if (m_DescriptorPool) vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
+		for (auto pool : m_DescriptorPools) vkDestroyDescriptorPool(m_Device, pool, nullptr);
 		if (m_SetLayout) vkDestroyDescriptorSetLayout(m_Device, m_SetLayout, nullptr);
 		if (m_Allocator) vmaDestroyAllocator(m_Allocator);
 		vkDestroyDevice(m_Device, nullptr);

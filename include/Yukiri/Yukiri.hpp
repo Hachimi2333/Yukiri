@@ -9,6 +9,8 @@
 #include <Yukiri/Platform/Application.hpp>
 #include <Yukiri/Platform/Window.hpp>
 #include <Yukiri/Render/Canvas.hpp>
+#include <Yukiri/Render/Image.hpp>
+#include <Yukiri/Controls/ImageView.hpp>
 #include <Yukiri/Styling/Theme.hpp>
 #include <Yukiri/UI/Widget.hpp>
 #include <Yukiri/Layout/Grid.hpp>

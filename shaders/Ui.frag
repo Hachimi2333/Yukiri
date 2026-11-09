@@ -17,7 +17,7 @@ void main()
 	{
 		vec4 pixel = texture(glyphAtlas, uv);
 		float alpha = color.a * pixel.a;
-		outputColor = vec4(ToLinear(color.rgb) * pixel.rgb * alpha, alpha);
+		outputColor = vec4(ToLinear(color.rgb) * pixel.rgb * color.a, alpha);
 		return;
 	}
 	else if (parameters.z > 0.5)

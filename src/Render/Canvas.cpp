@@ -1,6 +1,7 @@
 #include <Yukiri/Render/Canvas.hpp>
 #include "DrawList.hpp"
 #include "Text/TextEngine.hpp"
+#include "RenderDevice.hpp"
 #include <cassert>
 #include <cmath>
 
@@ -41,6 +42,22 @@ void Canvas::DrawImage(Rect rectangle, std::uint32_t texture)
 {
 	m_List.Add(ToGlobal(rectangle), Color::FromHex(0xFFFFFF), m_State.m_Clips.back(), 0, 0, texture,
 		{0, 0, 1, 1}, Detail::DrawKind::Image);
+}
+void Canvas::DrawImage(const Image& image, Rect rectangle, float opacity)
+{
+	if (!image || rectangle.Empty() || !m_Text || !m_Text->GetDevice() || m_State.m_Clips.back().Empty()) return;
+	if (!std::isfinite(opacity) || opacity <= 0 || ToGlobal(rectangle).Intersect(m_State.m_Clips.back()).Empty()) return;
+	const double width = std::ceil(static_cast<double>(rectangle.m_Width) * m_Scale);
+	const double height = std::ceil(static_cast<double>(rectangle.m_Height) * m_Scale);
+	if (!std::isfinite(width) || !std::isfinite(height) || width <= 0 || height <= 0 || width > 16384 || height > 16384)
+	{
+		if (!m_List.m_Error) m_List.m_Error = Error{ErrorCode::InvalidArgument, "The image drawing dimensions are invalid."};
+		return;
+	}
+	auto texture = m_Text->GetDevice()->GetImageTexture(image, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height));
+	if (!texture) { if (!m_List.m_Error) m_List.m_Error = texture.error(); return; }
+	m_List.Add(ToGlobal(rectangle), Color::FromHex(0xFFFFFF).WithAlpha(std::clamp(opacity, 0.0f, 1.0f)),
+		m_State.m_Clips.back(), 0, 0, *texture, {0, 0, 1, 1}, Detail::DrawKind::Image);
 }
 
 void Canvas::Save() { m_Stack.push_back(m_State); }

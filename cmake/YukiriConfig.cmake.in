@@ -31,6 +31,9 @@ function(YukiriImportLibrary name filename)
 	set_target_properties(${name} PROPERTIES IMPORTED_LOCATION "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/${filename}")
 endfunction()
 YukiriImportLibrary(Yukiri::PrivateSDL "$<TARGET_FILE_NAME:SDL3-static>")
+YukiriImportLibrary(Yukiri::PrivateSDLImage "$<TARGET_FILE_NAME:SDL3_image-static>")
+YukiriImportLibrary(Yukiri::PrivateLunaSVG "$<TARGET_FILE_NAME:lunasvg>")
+YukiriImportLibrary(Yukiri::PrivatePlutoVG "$<TARGET_FILE_NAME:plutovg>")
 YukiriImportLibrary(Yukiri::PrivateVolk "$<TARGET_FILE_NAME:volk>")
 YukiriImportLibrary(Yukiri::PrivateHarfBuzz "$<TARGET_FILE_NAME:harfbuzz>")
 YukiriImportLibrary(Yukiri::PrivateFreeType "$<TARGET_FILE_NAME:freetype>")
@@ -40,6 +43,6 @@ set_target_properties(Yukiri::Yukiri PROPERTIES
 	INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@"
 	INTERFACE_COMPILE_FEATURES cxx_std_23
 	IMPORTED_LINK_INTERFACE_LANGUAGES CXX
-	INTERFACE_LINK_LIBRARIES "Yukiri::PrivateSDL;Yukiri::PrivateVolk;Yukiri::PrivateHarfBuzz;Yukiri::PrivateFreeType;Yukiri::PrivateUnibreak;@YUKIRI_PACKAGE_SYSTEM_LIBRARIES@")
+	INTERFACE_LINK_LIBRARIES "Yukiri::PrivateSDLImage;Yukiri::PrivateSDL;Yukiri::PrivateLunaSVG;Yukiri::PrivatePlutoVG;Yukiri::PrivateVolk;Yukiri::PrivateHarfBuzz;Yukiri::PrivateFreeType;Yukiri::PrivateUnibreak;@YUKIRI_PACKAGE_SYSTEM_LIBRARIES@")
 set(Yukiri_VERSION "@PROJECT_VERSION@")
 check_required_components(Yukiri)

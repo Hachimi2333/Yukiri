@@ -1,7 +1,7 @@
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-install(TARGETS Yukiri SDL3-static volk harfbuzz freetype YukiriUnibreak
+install(TARGETS Yukiri SDL3-static SDL3_image-static lunasvg plutovg volk harfbuzz freetype YukiriUnibreak
 	ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT Development)
 install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" COMPONENT Development)
 
@@ -44,6 +44,18 @@ foreach(dependency SDL volk VulkanMemoryAllocator freetype harfbuzz libunibreak)
 endforeach()
 install(FILES third_party/harfbuzz/src/ms-use/COPYING DESTINATION "${licenseDirectory}"
 	RENAME HarfBuzz-Unicode.txt COMPONENT Development)
+install(FILES third_party/SDL_image/LICENSE.txt DESTINATION "${licenseDirectory}" RENAME SDL_image.txt COMPONENT Development)
+install(FILES third_party/SDL_image/src/stb_image.h DESTINATION "${licenseDirectory}" RENAME SDL_image-stb_image.h COMPONENT Development)
+install(FILES third_party/lunasvg/LICENSE DESTINATION "${licenseDirectory}" RENAME LunaSVG.txt COMPONENT Development)
+install(FILES third_party/lunasvg/plutovg/LICENSE DESTINATION "${licenseDirectory}" RENAME PlutoVG.txt COMPONENT Development)
+install(FILES third_party/lunasvg/plutovg/source/plutovg-stb-image.h
+	third_party/lunasvg/plutovg/source/plutovg-stb-image-write.h
+	third_party/lunasvg/plutovg/source/plutovg-stb-truetype.h
+	DESTINATION "${licenseDirectory}/PlutoVG" COMPONENT Development)
+install(FILES third_party/lunasvg/plutovg/source/plutovg-ft-raster.c
+	third_party/lunasvg/plutovg/source/plutovg-ft-math.c
+	third_party/lunasvg/plutovg/source/plutovg-ft-stroker.c
+	DESTINATION "${licenseDirectory}/PlutoVG" COMPONENT Development)
 install(FILES third_party/SDL/src/hidapi/LICENSE.txt third_party/SDL/src/hidapi/LICENSE-bsd.txt
 	DESTINATION "${licenseDirectory}/SDL-hidapi" COMPONENT Development)
 install(FILES README.md README.zh-CN.md AGENTS.md FUTURE.md LICENSE

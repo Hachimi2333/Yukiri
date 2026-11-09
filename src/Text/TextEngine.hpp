@@ -54,6 +54,7 @@ public:
 	std::vector<std::pair<std::size_t, float>> Carets(std::string_view text, float fontSize, float scale = 1);
 	Result<void> Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip);
 	void SetDevice(RenderDevice* device) { m_Device = device; }
+	[[nodiscard]] RenderDevice* GetDevice() const noexcept { return m_Device; }
 
 private:
 	struct ShapeKey

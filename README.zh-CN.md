@@ -30,6 +30,8 @@ Yukiri 是以静态库交付的保留模式 GUI 框架，提供 C++ 控件树、
 
 Yukiri 仍处于早期阶段，公开 API 可能调整。完整双向段落、多行编辑、系统无障碍接口和更多控件列入后续规划。已实现范围与实际验收边界见[项目状态](docs/Status.md)、[验证记录](docs/Validation.md)和[路线图](FUTURE.md)。
 
+0.2 开发分支已增加 UI 调度、定时器、命令、可取消关闭与公共位图 / SVG 资源。新增能力目前具备编译器和 CPU 覆盖，GPU 与桌面验收分别记录在[里程碑清单](docs/DesktopFoundations.md)。
+
 ## 环境要求
 
 在 Windows 上从源码构建需要：

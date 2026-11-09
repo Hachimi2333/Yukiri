@@ -12,6 +12,7 @@ namespace Yukiri
 {
 namespace Detail { class DrawList; class TextEngine; class WindowChrome; }
 class Window;
+class Image;
 
 class Canvas
 {
@@ -20,6 +21,7 @@ public:
 	void StrokeRectangle(Rect rectangle, Color color, float width = 1, float radius = 0);
 	void DrawLine(Point start, Point end, Color color, float width = 1);
 	void DrawText(std::string_view text, Point position, Color color, float fontSize = 14);
+	void DrawImage(const Image& image, Rect rectangle, float opacity = 1);
 	[[nodiscard]] Size MeasureText(std::string_view text, float fontSize = 14) const;
 	void Save();
 	void Restore();

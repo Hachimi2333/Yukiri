@@ -17,6 +17,8 @@ include(cmake/Runtime.cmake)
 add_library(Yukiri STATIC src/Core/Version.cpp src/Platform/Application.cpp src/Platform/Window.cpp)
 target_sources(Yukiri PRIVATE src/Core/Dispatcher.cpp src/Core/Command.cpp)
 target_sources(Yukiri PRIVATE src/Platform/WindowEvents.cpp)
+target_sources(Yukiri PRIVATE src/Render/Image.cpp src/Render/ImageProbe.cpp src/Render/SvgImage.cpp src/Render/ImageTextures.cpp src/Controls/ImageView.cpp)
+target_sources(Yukiri PRIVATE src/Render/ImageColor.cpp)
 target_sources(Yukiri PRIVATE src/Render/RenderDevice.cpp src/Render/Resources.cpp
 	src/Render/WindowRenderer.cpp src/Render/Pipeline.cpp src/Render/Vma.cpp)
 target_sources(Yukiri PRIVATE src/Render/Canvas.cpp src/UI/Widget.cpp src/UI/WidgetTree.cpp
@@ -59,6 +61,7 @@ target_compile_definitions(Yukiri PRIVATE SDL_MAIN_HANDLED VK_NO_PROTOTYPES
 )
 target_link_libraries(Yukiri PRIVATE SDL3::SDL3-static volk GPUOpen::VulkanMemoryAllocator
 	freetype harfbuzz YukiriUnibreak)
+target_link_libraries(Yukiri PRIVATE SDL3_image::SDL3_image-static lunasvg::lunasvg)
 
 if(MSVC)
 	target_compile_options(Yukiri PRIVATE /W4 /permissive- /utf-8 /Zc:__cplusplus)
@@ -102,6 +105,8 @@ if(YUKIRI_BUILD_TESTS)
 	add_executable(YukiriTests tests/FocusTests.cpp tests/AnimatedControlTests.cpp tests/FramePacerTests.cpp tests/MotionTests.cpp tests/SignalTests.cpp tests/LayoutTests.cpp tests/WidgetTreeTests.cpp tests/TextTests.cpp tests/StyleTests.cpp tests/ControlTests.cpp)
 	target_link_libraries(YukiriTests PRIVATE Yukiri::Yukiri Catch2::Catch2WithMain)
 	target_sources(YukiriTests PRIVATE tests/DispatcherTests.cpp tests/CommandTests.cpp)
+	target_sources(YukiriTests PRIVATE tests/ImageTests.cpp)
+	target_compile_definitions(YukiriTests PRIVATE YUKIRI_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 	target_include_directories(YukiriTests PRIVATE src)
 	target_include_directories(YukiriTests PRIVATE third_party/freetype/include "${CMAKE_CURRENT_BINARY_DIR}/third_party/freetype/include" third_party/harfbuzz/src)
 	YukiriCopyRuntime(YukiriTests)
