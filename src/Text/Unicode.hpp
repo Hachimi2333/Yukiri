@@ -15,6 +15,7 @@ struct Codepoint
 };
 std::vector<Codepoint> DecodeUtf8(std::string_view text);
 std::string SanitizeUtf8(std::string_view text, bool singleLine = false);
+std::string NormalizeText(std::string_view text, bool singleLine);
 std::vector<std::size_t> GraphemeBoundaries(std::string_view text);
 std::vector<std::size_t> WordBoundaries(std::string_view text);
 std::vector<std::size_t> LineBoundaries(std::string_view text);

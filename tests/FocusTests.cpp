@@ -58,7 +58,7 @@ TEST_CASE("Popup pointer input hides the ring before consuming the event", "[foc
 	tree.SetRoot(std::move(combo));
 	tree.Layout({220, 180});
 	tree.KeyDown({Yukiri::Key::Tab});
-	tree.KeyDown({Yukiri::Key::Down});
+	tree.KeyDown({Yukiri::Key::F4});
 	REQUIRE(tree.HasPopup(control));
 	REQUIRE(control->IsFocusVisible());
 	tree.PointerDown({{12, 12}, Yukiri::PointerButton::Left});

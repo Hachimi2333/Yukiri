@@ -188,13 +188,13 @@ TEST_CASE("Popup closing relinquishes input immediately and owner removal cancel
 	tree.SetRoot(std::move(root));
 	tree.Layout({200, 40});
 	tree.SetFocus(combo);
-	tree.KeyDown({Yukiri::Key::Down});
+	tree.KeyDown({Yukiri::Key::F4});
 	tree.Tick(std::chrono::steady_clock::now() + 40ms);
 	REQUIRE(tree.HasPopup(combo));
 	tree.ClosePopup();
 	REQUIRE_FALSE(tree.HasPopup(combo));
 	REQUIRE(tree.OwnsPopup(combo));
-	tree.KeyDown({Yukiri::Key::Down});
+	tree.KeyDown({Yukiri::Key::F4});
 	REQUIRE(tree.HasPopup(combo));
 	tree.SetRoot(nullptr);
 	REQUIRE_FALSE(tree.OwnsPopup(combo));

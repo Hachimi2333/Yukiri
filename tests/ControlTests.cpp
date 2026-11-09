@@ -55,7 +55,7 @@ TEST_CASE("Combo popup selection uses keyboard and closes without extra activati
 	tree.SetRoot(std::move(combo));
 	tree.Layout({200, 40});
 	tree.SetFocus(control);
-	tree.KeyDown({Yukiri::Key::Down});
+	tree.KeyDown({Yukiri::Key::F4});
 	REQUIRE(tree.HasPopup(control));
 	tree.KeyDown({Yukiri::Key::Down});
 	tree.KeyDown({Yukiri::Key::Enter});

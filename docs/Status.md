@@ -6,10 +6,12 @@
 
 0.2 已加入层级弹出内容、MenuBar / ContextMenu、ToolBar / StatusBar / Separator / ToolTip，以及所属窗口内 Dialog / MessageDialog 和独立 STA 的可取消 FileDialog。弹出内容保留退出视觉时立即退出输入，模态限制焦点及快捷键范围。真实系统对话框、菜单视觉和桌面交互尚待用户验收。
 
+0.2 编辑阶段加入 TextArea 多行与段落缓存、字面查找替换、合并撤销、TextBox 密码模式、NumberBox，以及单选组、ComboBox、Slider 与不确定进度的标准键盘行为。CPU 几何 / 模型覆盖和真实 IME / 剪贴板验收分别记录。
+
 | 阶段 | 交付状态 |
 |---|---|
 | 开发规范与文档 | AGENTS.md、FUTURE.md 与 docs 已建立并持续维护 |
-| 子模块与构建 | 七个依赖固定提交；MSVC / MinGW 的 Debug / Release Ninja presets |
+| 子模块与构建 | 九个依赖固定提交；MSVC / MinGW 的 Debug / Release Ninja presets |
 | 平台与多窗口 | SDL 生命周期、独立窗口、事件循环、错误报告、关闭通知 |
 | Vulkan 渲染 | 1.4 设备、Dynamic Rendering、Synchronization2、VMA、图集、批次、裁剪与交换链重建 |
 | 控件树与布局 | 所有权、延迟销毁、路由、焦点、捕获、失效、StackPanel / Grid / Overlay |

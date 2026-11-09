@@ -4,6 +4,7 @@
 
 namespace Yukiri
 {
+std::uint64_t Window::GetFontGeneration() const noexcept { return m_Impl->m_Text->GetFontGeneration(); }
 std::vector<std::pair<std::size_t, float>> Window::GetTextCarets(std::string_view text, float fontSize, const Font& font) const
 {
 	return m_Impl->m_Text->Carets(text, fontSize, GetScale(), font);

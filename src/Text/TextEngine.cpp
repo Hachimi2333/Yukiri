@@ -71,6 +71,7 @@ Result<void> TextEngine::LoadFont(const std::filesystem::path& path, long index,
 	m_FaceChoices.clear();
 	if (prefer) m_FallbackFonts.insert(m_FallbackFonts.begin(), font.get()); else m_FallbackFonts.push_back(font.get());
 	m_Fonts.push_back(std::move(font));
+	++m_FontGeneration;
 	return {};
 }
 std::size_t TextEngine::ShapeHash::operator()(const ShapeKey& key) const noexcept

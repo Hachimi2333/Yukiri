@@ -61,12 +61,23 @@ void ComboBox::OnPointerDown(PointerEvent& event)
 }
 void ComboBox::OnKeyDown(KeyEvent& event)
 {
-	if (event.m_Key == Key::Space || event.m_Key == Key::Enter || event.m_Key == Key::Down)
+	if (event.m_Modifiers.m_Control || event.m_Modifiers.m_Super || (event.m_Modifiers.m_Alt && event.m_Key != Key::Down)) return;
+	if (event.m_Key == Key::Space || event.m_Key == Key::Enter || event.m_Key == Key::F4 || (event.m_Key == Key::Down && event.m_Modifiers.m_Alt))
 	{
 		event.m_Handled = true;
 		Open();
 	}
+	else if (!m_Items.empty() && (event.m_Key == Key::Up || event.m_Key == Key::Down || event.m_Key == Key::Home || event.m_Key == Key::End))
+	{
+		const int index = event.m_Key == Key::Home ? 0 : event.m_Key == Key::End ? static_cast<int>(m_Items.size()) - 1 :
+			std::clamp(m_Selected + (event.m_Key == Key::Up ? -1 : 1), 0, static_cast<int>(m_Items.size()) - 1);
+		auto selected = SetSelectedIndex(index); (void)selected;
+		event.m_Handled = true;
+	}
 }
+const std::vector<std::string>& ComboBox::GetItems() const noexcept { return m_Items; }
+bool ComboBox::IsExpanded() const noexcept { return IsPopupOpen(); }
+void ComboBox::SetExpanded(bool expanded) { if (expanded && !IsPopupOpen()) Open(); else if (!expanded) ClosePopup(); }
 bool ComboBox::OnAnimate(std::chrono::nanoseconds delta)
 {
 	m_Arrow.Retarget(IsPopupOpen() ? 1.0f : 0.0f, MotionDuration(GetTheme().m_Motion.m_PopupDuration));
@@ -133,7 +144,7 @@ void ComboBox::Open()
 		return false;
 	}, [this](KeyEvent& event)
 	{
-		if (event.m_Key == Key::Escape) { ClosePopup(); return true; }
+		if (event.m_Key == Key::Escape || event.m_Key == Key::F4 || (event.m_Key == Key::Up && event.m_Modifiers.m_Alt)) { ClosePopup(); return true; }
 		if (event.m_Key == Key::Enter || event.m_Key == Key::Space)
 		{
 			const int selectedIndex = m_Highlight;
@@ -146,6 +157,8 @@ void ComboBox::Open()
 		else if (event.m_Key == Key::Up) --m_Highlight;
 		else if (event.m_Key == Key::Home) m_Highlight = 0;
 		else if (event.m_Key == Key::End) m_Highlight = static_cast<int>(m_Items.size()) - 1;
+		else if (event.m_Key == Key::PageUp) m_Highlight -= m_VisibleRows;
+		else if (event.m_Key == Key::PageDown) m_Highlight += m_VisibleRows;
 		else return false;
 		m_Highlight = std::clamp(m_Highlight, 0, static_cast<int>(m_Items.size()) - 1);
 		m_TopIndex = std::clamp(m_TopIndex, std::max(0, m_Highlight - m_VisibleRows + 1), m_Highlight);

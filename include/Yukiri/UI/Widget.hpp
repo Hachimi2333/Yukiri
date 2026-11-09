@@ -74,7 +74,7 @@ public:
 	[[nodiscard]] bool IsVisible() const noexcept;
 	[[nodiscard]] bool IsEnabled() const noexcept;
 	[[nodiscard]] bool IsFocusable() const noexcept;
-	[[nodiscard]] bool IsTabStop() const noexcept;
+	[[nodiscard]] virtual bool IsTabStop() const noexcept;
 	[[nodiscard]] bool IsHovered() const noexcept;
 	[[nodiscard]] bool HasFocus() const noexcept;
 	[[nodiscard]] bool IsFocusVisible() const noexcept;

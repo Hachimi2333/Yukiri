@@ -18,9 +18,9 @@ struct TextDisplay
 class TextComposition
 {
 public:
-	void Update(std::string_view text, int start, int length)
+	void Update(std::string_view text, int start, int length, bool singleLine = true)
 	{
-		m_Text = SanitizeUtf8(text, true);
+		m_Text = NormalizeText(text, singleLine);
 		const auto points = DecodeUtf8(m_Text);
 		const auto caret = start < 0 ? points.size() : std::min(static_cast<std::size_t>(start), points.size());
 		const auto selected = std::min(static_cast<std::size_t>(std::max(0, length)), points.size() - caret);

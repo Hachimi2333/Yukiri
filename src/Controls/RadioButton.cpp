@@ -5,6 +5,40 @@
 namespace Yukiri
 {
 RadioButton::RadioButton(std::string text, std::string group) : CheckBox(std::move(text)), m_Group(std::move(group)) {}
+std::string_view RadioButton::GetGroup() const noexcept { return m_Group; }
+void RadioButton::OnArrange(Rect) { if (IsChecked()) SetChecked(true); }
+bool RadioButton::IsTabStop() const noexcept
+{
+	if (!Widget::IsTabStop()) return false;
+	const RadioButton* first = nullptr;
+	bool selected = false;
+	if (GetParent()) for (const auto& child : GetParent()->GetChildren())
+		if (auto* radio = dynamic_cast<RadioButton*>(child.get()); radio && radio->m_Group == m_Group && radio->IsVisible() && radio->IsEnabled() && radio->Widget::IsTabStop())
+		{
+			if (!first) first = radio;
+			if (radio->IsChecked()) selected = true;
+		}
+	return IsChecked() || (!selected && (!first || first == this));
+}
+void RadioButton::OnKeyDown(KeyEvent& event)
+{
+	if (event.m_Modifiers.m_Alt || event.m_Modifiers.m_Control || event.m_Modifiers.m_Super) { CheckBox::OnKeyDown(event); return; }
+	const bool previous = event.m_Key == Key::Left || event.m_Key == Key::Up;
+	if ((!previous && event.m_Key != Key::Right && event.m_Key != Key::Down) || !GetParent()) { CheckBox::OnKeyDown(event); return; }
+	Dispatch([&]
+	{
+		std::vector<RadioButton*> group;
+		for (const auto& child : GetParent()->GetChildren())
+			if (auto* radio = dynamic_cast<RadioButton*>(child.get()); radio && radio->m_Group == m_Group && radio->IsEnabled() && radio->IsVisible()) group.push_back(radio);
+		const auto found = std::ranges::find(group, this);
+		if (found == group.end()) return;
+		const auto index = static_cast<std::size_t>((static_cast<int>(found - group.begin()) + (previous ? -1 : 1) + static_cast<int>(group.size())) % static_cast<int>(group.size()));
+		auto* target = group[index];
+		target->RequestFocus();
+		target->Activate();
+		event.m_Handled = true;
+	});
+}
 void RadioButton::SetChecked(bool checked)
 {
 	if (checked && GetParent())

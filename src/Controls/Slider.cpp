@@ -5,9 +5,17 @@
 namespace Yukiri
 {
 Slider::Slider(float value) { SetFocusable(true); SetCursor(Cursor::Hand); SetValue(value); }
+Result<void> Slider::SetStep(float step)
+{
+	if (!std::isfinite(step) || step <= 0) return std::unexpected(Error{ErrorCode::InvalidArgument, "Slider step must be positive and finite."});
+	m_Step = step; return {};
+}
+float Slider::GetStep() const noexcept { return m_Step > 0 ? m_Step : (m_Maximum - m_Minimum) * 0.01f; }
+float Slider::GetMinimum() const noexcept { return m_Minimum; }
+float Slider::GetMaximum() const noexcept { return m_Maximum; }
 Result<void> Slider::SetRange(float minimum, float maximum)
 {
-	if (!std::isfinite(minimum) || !std::isfinite(maximum) || minimum >= maximum)
+	if (!std::isfinite(minimum) || !std::isfinite(maximum) || minimum >= maximum || !std::isfinite(maximum - minimum))
 		return std::unexpected(Error{ErrorCode::InvalidArgument, "Slider minimum must be smaller than maximum."});
 	m_Minimum = minimum;
 	m_Maximum = maximum;
@@ -41,7 +49,9 @@ Size Slider::OnMeasure(Size) { return {200, GetTheme().m_ControlHeight}; }
 void Slider::SetFromPoint(Point point)
 {
 	const float fraction = std::clamp((ToLocal(point).m_X - 8) / std::max(1.0f, GetActualSize().m_Width - 16), 0.0f, 1.0f);
-	SetValue(m_Minimum + fraction * (m_Maximum - m_Minimum));
+	float value = m_Minimum + fraction * (m_Maximum - m_Minimum);
+	if (m_Step > 0) value = m_Minimum + std::round((value - m_Minimum) / m_Step) * m_Step;
+	SetValue(value);
 }
 void Slider::OnPointerDown(PointerEvent& event)
 {
@@ -63,12 +73,15 @@ void Slider::OnPointerCaptureLost() { m_Dragging = false; InvalidatePaint(); }
 void Slider::OnFocusChanged(bool focused) { if (!focused) { m_Dragging = false; ReleasePointer(); } InvalidatePaint(); }
 void Slider::OnKeyDown(KeyEvent& event)
 {
+	if (event.m_Modifiers.m_Alt || event.m_Modifiers.m_Control || event.m_Modifiers.m_Super) return;
 	float value = m_Value;
-	const float step = (m_Maximum - m_Minimum) * (event.m_Modifiers.m_Shift ? 0.1f : 0.01f);
+	const float step = GetStep() * (event.m_Modifiers.m_Shift ? 10 : 1);
 	if (event.m_Key == Key::Left || event.m_Key == Key::Down) value -= step;
 	else if (event.m_Key == Key::Right || event.m_Key == Key::Up) value += step;
 	else if (event.m_Key == Key::Home) value = m_Minimum;
 	else if (event.m_Key == Key::End) value = m_Maximum;
+	else if (event.m_Key == Key::PageUp) value += step * 10;
+	else if (event.m_Key == Key::PageDown) value -= step * 10;
 	else return;
 	event.m_Handled = true;
 	SetValue(value);

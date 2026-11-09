@@ -187,6 +187,7 @@ void WidgetTree::Wheel(PointerEvent event)
 	Dispatch dispatch(*this);
 	HideToolTip();
 	if (PopupPointer(event, false)) return;
+	if (!ParentPopup(Target(event.m_Position))) ClosePopup(true);
 	Route(event, &Widget::OnWheel);
 }
 void WidgetTree::AdvanceFocus(bool backwards)

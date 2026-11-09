@@ -113,6 +113,16 @@ Image 是可复制的共享不可变资源，Load 接受 filesystem::path，From
 
 ImageView 的 Stretch::None / Uniform / UniformToFill / Fill 分别表示原尺寸、等比适应、等比填充裁剪及拉伸。Canvas::DrawImage(image, rectangle, opacity) 绘制到局部矩形并遵循当前裁剪。CPU 图片可独立于窗口加载；GPU 资源只在应用线程绘制时创建。编码输入上限 64MiB，尺寸每轴最多 16384，解码像素最多 64M（256MiB RGBA）；栅格格式在调用解码器前检查尺寸，GPU 另检查设备限制。
 
+## 文字编辑与数值输入
+
+TextArea 继承 TextBox 的文本、只读、选区、剪贴板、撤销和 IME 接口；默认自动换行，SetWrap(false) 开启横向滚动。支持上下 / Home / End / PageUp / PageDown、Ctrl+Home / End、Shift 扩选、双击选词、三击选逻辑行及越界拖动滚动。Tab 继续参与控件导航。SetSelection 的参数是 UTF-8 字节偏移并向前校正到字素边界。SetOffset 立即定位，滚轮使用主题滚动时长缓动。
+
+Find、Replace、ReplaceAll 提供字面查找替换及大小写选项；Find 默认从当前选区之后查找并循环，backwards 从选区之前向前查找。Replace 优先替换当前匹配选区，否则查找下一个；ReplaceAll 返回替换数量并只产生一项撤销记录。Undo / Redo、CanUndo / CanRedo、m_EditStateChanged 便于绑定编辑命令；Copy / Cut / Paste 返回操作结果，取消预编辑后操作已提交文本。TextBox::SetPassword 只作用于单行，屏蔽复制 / 剪切和无障碍明文；应用的 GetText 仍返回实际值。
+
+NumberBox 通过 GetEditor 提供文本输入，SetRange / SetStep / SetFormat 检查范围、步长及 General / Fixed / Scientific 格式精度。输入使用不依赖区域的十进制与小数点，可包含指数；非数字、非有限值和越界值不提交。Enter / 失焦尝试提交，Escape 恢复已提交值，Up / Down 增减一步，PageUp / PageDown 增减十步。无效内容显示边框反馈，GetValue 保留已提交值。程序 SetValue 约束到范围；格式舍入会越界时使用足够精度保留合法端点。
+
+单选组以同级相同 group 标识组织，Tab 进入已选项（未选时进入首个有效项），方向键循环跳过隐藏 / 禁用项并选择。Slider::SetStep 设置键盘步长及拖动吸附，Home / End 到端点，Shift 或 PageUp / PageDown 扩大增量。ComboBox 关闭时方向键 / Home / End 直接选择，Alt+Down / F4 / Space / Enter 展开；列表支持 PageUp / PageDown，Escape / F4 / Alt+Up 退出。ProgressBar::SetIndeterminate 显示循环进度，禁用动效时显示静态标记。
+
 ## 动画与平滑滚动
 
 ApplicationConfig::m_Motion 设置默认动效，Theme::m_Motion 支持局部覆盖。使用 m_Enabled=false 可整体关闭该作用域的动效；非正时长立即完成。初始属性直接显示，后续状态变化使用短过渡，模型 getter 与通知始终立即反映目标值。

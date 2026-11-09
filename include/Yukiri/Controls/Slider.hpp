@@ -10,6 +10,10 @@ class Slider : public Widget
 public:
 	explicit Slider(float value = 0);
 	[[nodiscard]] Result<void> SetRange(float minimum, float maximum);
+	[[nodiscard]] Result<void> SetStep(float step);
+	[[nodiscard]] float GetStep() const noexcept;
+	[[nodiscard]] float GetMinimum() const noexcept;
+	[[nodiscard]] float GetMaximum() const noexcept;
 	void SetValue(float value);
 	[[nodiscard]] float GetValue() const noexcept;
 	void OnPointerDown(PointerEvent& event) override;
@@ -28,6 +32,7 @@ private:
 	float m_Minimum = 0;
 	float m_Maximum = 1;
 	float m_Value = 0;
+	float m_Step = 0;
 	Detail::Transition m_ValueVisual;
 	bool m_Dragging = false;
 };

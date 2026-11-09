@@ -82,6 +82,7 @@ void WidgetTree::SetPopup(Widget* owner, std::function<void(Canvas&, float)> pai
 	Dispatch dispatch(*this);
 	if (!owner || owner->ObserveLifetime().expired()) return;
 	if (owner->m_Tree != this) return;
+	for (auto* ancestor = owner; ancestor; ancestor = ancestor->GetParent()) if (!ancestor->IsVisible() || !ancestor->IsEnabled()) return;
 	if (auto* modal = GetModalRoot(); modal && !Within(owner, modal)) return;
 	HideToolTip();
 	Popup* popup = nullptr;

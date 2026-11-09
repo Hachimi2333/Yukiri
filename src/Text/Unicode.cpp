@@ -53,6 +53,23 @@ std::string SanitizeUtf8(std::string_view text, bool singleLine)
 	return result;
 }
 
+std::string NormalizeText(std::string_view text, bool singleLine)
+{
+	if (singleLine) return SanitizeUtf8(text, true);
+	const auto sanitized = SanitizeUtf8(text);
+	std::string result;
+	result.reserve(sanitized.size());
+	for (std::size_t index = 0; index < sanitized.size(); ++index)
+	{
+		if (sanitized[index] != '\r') result += sanitized[index];
+		else
+		{
+			result += '\n';
+			if (index + 1 < sanitized.size() && sanitized[index + 1] == '\n') ++index;
+		}
+	}
+	return result;
+}
 namespace
 {
 std::vector<std::size_t> Boundaries(std::string_view text, int type)

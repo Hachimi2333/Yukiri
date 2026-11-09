@@ -9,6 +9,7 @@
 - Keep each file responsible for one coherent concern. Do not split files just to satisfy a line count, or combine unrelated subsystems.
 - A parent exclusively owns its children through `std::unique_ptr`. Observers do not own widgets. Defer destruction during input, layout, and paint dispatch. UI mutation and rendering run on the application thread.
 - Popup branches and modal scopes belong to the window tree. Close logical interaction before exit animation; restore only live focus targets. Native file dialogs use a cancellable STA worker and post results to the UI dispatcher, never a nested Yukiri event loop.
+- TextBox and TextArea share editing, composition, and history. Use shared paragraph metrics for drawing, selection, hit testing, and IME geometry; password accessibility and clipboard paths must never expose plaintext.
 - Use RAII, the rule of zero where practical, explicit ownership, and the C++ Core Guidelines. Fallible initialization and resource operations return `std::expected<..., Error>`.
 - Confirm new important public names with the user. Approved names include Yukiri, Application, Window, Widget, Canvas, Theme, ApplicationConfig, WindowConfig, WindowDecoration, ThemeMode, Signal, Connection, Error, ErrorCode, MotionSettings, OnAnimate, RequestAnimationFrame, SetSmoothScrolling, IsFocusVisible, and GetFocusBounds.
 - The approved 0.2 names and delivery checklist are in docs/DesktopFoundations.md. Keep completed capabilities distinct from pending milestones.

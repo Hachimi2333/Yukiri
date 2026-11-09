@@ -37,6 +37,8 @@
 #include <Yukiri/Controls/Slider.hpp>
 #include <Yukiri/Controls/ProgressBar.hpp>
 #include <Yukiri/Controls/TextBox.hpp>
+#include <Yukiri/Controls/TextArea.hpp>
+#include <Yukiri/Controls/NumberBox.hpp>
 #include <Yukiri/Controls/ComboBox.hpp>
 #include <Yukiri/Controls/TabView.hpp>
 #include <Yukiri/Controls/ScrollView.hpp>

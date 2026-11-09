@@ -14,6 +14,9 @@ public:
 	[[nodiscard]] Result<void> SetSelectedIndex(int index);
 	[[nodiscard]] int GetSelectedIndex() const noexcept;
 	[[nodiscard]] std::string_view GetSelectedText() const noexcept;
+	[[nodiscard]] const std::vector<std::string>& GetItems() const noexcept;
+	void SetExpanded(bool expanded);
+	[[nodiscard]] bool IsExpanded() const noexcept;
 	void OnPointerDown(PointerEvent& event) override;
 	void OnKeyDown(KeyEvent& event) override;
 	[[nodiscard]] bool AcceptsReturn() const noexcept override { return true; }

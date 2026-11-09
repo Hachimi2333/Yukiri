@@ -58,6 +58,7 @@ public:
 	const ShapedText& Shape(std::string_view text, float fontSize, float scale = 1, const Yukiri::Font& font = {});
 	[[nodiscard]] std::uint64_t GetShapeCacheHits() const noexcept { return m_CacheHits; }
 	[[nodiscard]] std::size_t GetShapeCacheBytes() const noexcept { return m_CacheBytes; }
+	[[nodiscard]] std::uint64_t GetFontGeneration() const noexcept { return m_FontGeneration; }
 	Size Measure(std::string_view text, float fontSize, float scale = 1, const Yukiri::Font& font = {});
 	std::vector<std::pair<std::size_t, float>> Carets(std::string_view text, float fontSize, float scale = 1, const Yukiri::Font& font = {});
 	Result<void> Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip, const Yukiri::Font& font = {});
@@ -88,6 +89,7 @@ private:
 	std::unordered_map<ShapeKey, std::list<CachedShape>::iterator, ShapeHash> m_ShapeIndex;
 	ShapedText m_Uncached;
 	std::uint64_t m_CacheHits = 0;
+	std::uint64_t m_FontGeneration = 0;
 	std::size_t m_CacheBytes = 0;
 	struct Glyph
 	{
