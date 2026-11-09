@@ -13,9 +13,9 @@ Window::Window(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl))
 	m_Impl->m_Tree.m_Window = this;
 	m_Impl->m_Tree.m_EndTextInput = [this] { StopTextInput(); };
 	m_Impl->m_Tree.m_PointerCapture = [](bool capture) { SDL_CaptureMouse(capture); };
-	m_Impl->m_Tree.m_MeasureText = [this](std::string_view text, float size) { return MeasureText(text, size); };
+	m_Impl->m_Tree.m_MeasureText = [this](std::string_view text, float size, const Font& font) { return MeasureText(text, size, font); };
 	m_Impl->m_Cursors = {SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT), SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER),
-		SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_TEXT)};
+		SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_TEXT), SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE), SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE)};
 	m_Impl->m_Statistics.m_Enabled = SDL_GetEnvironmentVariable(SDL_GetEnvironment(), "YUKIRI_FRAME_STATS") != nullptr;
 	m_Impl->RefreshRate();
 	SetTheme(m_Impl->m_Config.m_Theme);

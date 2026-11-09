@@ -3,16 +3,20 @@
 #include "Render/DrawList.hpp"
 #include <algorithm>
 #include <cmath>
+#include FT_SYNTHESIS_H
 
 namespace Yukiri::Detail
 {
-Result<TextEngine::Glyph> TextEngine::GetGlyph(Font& font, std::uint32_t glyph, unsigned pixels)
+Result<TextEngine::Glyph> TextEngine::GetGlyph(FontFace& font, std::uint32_t glyph, unsigned pixels)
 {
 	const auto key = (static_cast<std::uint64_t>(font.m_Id) << 48) |
 		(static_cast<std::uint64_t>(pixels) << 32) | glyph;
 	if (auto found = m_Glyphs.find(key); found != m_Glyphs.end()) return found->second;
 	FT_Set_Pixel_Sizes(font.m_Face, 0, pixels);
-	if (FT_Load_Glyph(font.m_Face, glyph, FT_LOAD_DEFAULT) || FT_Render_Glyph(font.m_Face->glyph, FT_RENDER_MODE_NORMAL))
+	if (FT_Load_Glyph(font.m_Face, glyph, FT_LOAD_DEFAULT))
+		return std::unexpected(Error{ErrorCode::FontLoading, "Loading a font glyph failed."});
+	if (font.m_SyntheticBold) FT_GlyphSlot_Embolden(font.m_Face->glyph);
+	if (FT_Render_Glyph(font.m_Face->glyph, FT_RENDER_MODE_NORMAL))
 		return std::unexpected(Error{ErrorCode::FontLoading, "Rasterizing a font glyph failed."});
 	const auto& bitmap = font.m_Face->glyph->bitmap;
 	if (bitmap.width && bitmap.rows && bitmap.pixel_mode != FT_PIXEL_MODE_GRAY &&
@@ -66,10 +70,10 @@ Result<TextEngine::Glyph> TextEngine::GetGlyph(Font& font, std::uint32_t glyph, 
 	return result;
 }
 
-Result<void> TextEngine::Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip)
+Result<void> TextEngine::Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip, const Yukiri::Font& font)
 {
 	if (!m_Device) return std::unexpected(Error{ErrorCode::GraphicsInitialization, "Text drawing requires an initialized graphics device."});
-	const auto& shaped = Shape(text, fontSize, scale);
+	const auto& shaped = Shape(text, fontSize, scale, font);
 	const auto pixels = static_cast<unsigned>(std::clamp(std::round(fontSize * scale), 1.0f, 512.0f));
 	for (const auto& item : shaped.m_Glyphs)
 	{

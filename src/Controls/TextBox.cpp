@@ -69,7 +69,7 @@ void TextBox::CancelComposition()
 }
 std::size_t TextBox::OffsetAt(Point point) const
 {
-	return GetWindow() ? GetWindow()->HitTestText(GetText(), ToLocal(point).m_X - 10 + m_Impl->m_Scroll, GetFontSize()) : 0;
+	return GetWindow() ? GetWindow()->HitTestText(GetText(), ToLocal(point).m_X - 10 + m_Impl->m_Scroll, GetFontSize(), GetFont()) : 0;
 }
 void TextBox::OnPointerDown(PointerEvent& event)
 {
@@ -182,7 +182,7 @@ void TextBox::OnPaint(Canvas& canvas)
 	const auto caret = displayState.m_Caret;
 	const float textHeight = canvas.MeasureText(display, GetFontSize()).m_Height;
 	const float top = (size.m_Height - textHeight) * 0.5f;
-	const float caretX = GetWindow() ? GetWindow()->GetTextCaretX(display, caret, GetFontSize()) : 0;
+	const float caretX = GetWindow() ? GetWindow()->GetTextCaretX(display, caret, GetFontSize(), GetFont()) : 0;
 	const float viewport = std::max(1.0f, size.m_Width - 22);
 	if (caretX < m_Impl->m_Scroll) m_Impl->m_Scroll = caretX;
 	if (caretX > m_Impl->m_Scroll + viewport) m_Impl->m_Scroll = caretX - viewport;
@@ -191,16 +191,16 @@ void TextBox::OnPaint(Canvas& canvas)
 	canvas.PushClip({8, 4, std::max(0.0f, size.m_Width - 16), std::max(0.0f, size.m_Height - 8)});
 	if (displayState.m_SelectionStart != displayState.m_SelectionEnd && GetWindow())
 	{
-		const float start = GetWindow()->GetTextCaretX(display, displayState.m_SelectionStart, GetFontSize());
-		const float end = GetWindow()->GetTextCaretX(display, displayState.m_SelectionEnd, GetFontSize());
+		const float start = GetWindow()->GetTextCaretX(display, displayState.m_SelectionStart, GetFontSize(), GetFont());
+		const float end = GetWindow()->GetTextCaretX(display, displayState.m_SelectionEnd, GetFontSize(), GetFont());
 		canvas.FillRectangle({left + start, top, end - start, textHeight}, theme.m_Selection, 2);
 	}
 	if (display.empty() && !HasFocus()) canvas.DrawText(m_Impl->m_Placeholder, {10, top}, theme.m_MutedText, GetFontSize());
 	else canvas.DrawText(display, {left, top}, GetForeground(), GetFontSize());
 	if (displayState.m_Composing && GetWindow())
 	{
-		const float start = GetWindow()->GetTextCaretX(display, displayState.m_CompositionStart, GetFontSize());
-		const float end = GetWindow()->GetTextCaretX(display, displayState.m_CompositionEnd, GetFontSize());
+		const float start = GetWindow()->GetTextCaretX(display, displayState.m_CompositionStart, GetFontSize(), GetFont());
+		const float end = GetWindow()->GetTextCaretX(display, displayState.m_CompositionEnd, GetFontSize(), GetFont());
 		canvas.FillRectangle({left + start, top + textHeight - 1, end - start, 1}, theme.m_Accent);
 	}
 	if (HasFocus() && (Milliseconds() - m_Impl->m_LastInteraction) / 500 % 2 == 0)

@@ -2,6 +2,8 @@
 
 #include <Yukiri/Core/Error.hpp>
 #include <Yukiri/Core/Geometry.hpp>
+#include <Yukiri/Text/Font.hpp>
+#include "Platform/FontDiscovery.hpp"
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <hb.h>
@@ -11,22 +13,28 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <map>
+#include <tuple>
 
 namespace Yukiri::Detail
 {
 class RenderDevice;
 class DrawList;
-struct Font
+struct FontFace
 {
-	~Font();
-	std::vector<unsigned char> m_Data;
+	~FontFace();
+	std::shared_ptr<const std::vector<unsigned char>> m_Data;
 	FT_Face m_Face = nullptr;
 	hb_font_t* m_Shaper = nullptr;
 	std::uint32_t m_Id = 0;
+	FontSource m_Source;
+	bool m_Custom = false;
+	bool m_SyntheticBold = false;
+	bool m_SyntheticItalic = false;
 };
 struct ShapedGlyph
 {
-	Font* m_Font;
+	FontFace* m_Font;
 	std::uint32_t m_Glyph;
 	std::uint32_t m_Cluster;
 	float m_X;
@@ -47,12 +55,12 @@ public:
 	static Result<std::unique_ptr<TextEngine>> Create();
 	~TextEngine();
 	Result<void> LoadFont(const std::filesystem::path& path, long index = 0, bool prefer = true);
-	const ShapedText& Shape(std::string_view text, float fontSize, float scale = 1);
+	const ShapedText& Shape(std::string_view text, float fontSize, float scale = 1, const Yukiri::Font& font = {});
 	[[nodiscard]] std::uint64_t GetShapeCacheHits() const noexcept { return m_CacheHits; }
 	[[nodiscard]] std::size_t GetShapeCacheBytes() const noexcept { return m_CacheBytes; }
-	Size Measure(std::string_view text, float fontSize, float scale = 1);
-	std::vector<std::pair<std::size_t, float>> Carets(std::string_view text, float fontSize, float scale = 1);
-	Result<void> Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip);
+	Size Measure(std::string_view text, float fontSize, float scale = 1, const Yukiri::Font& font = {});
+	std::vector<std::pair<std::size_t, float>> Carets(std::string_view text, float fontSize, float scale = 1, const Yukiri::Font& font = {});
+	Result<void> Draw(DrawList& list, std::string_view text, Point position, Color color, float fontSize, float scale, Rect clip, const Yukiri::Font& font = {});
 	void SetDevice(RenderDevice* device) { m_Device = device; }
 	[[nodiscard]] RenderDevice* GetDevice() const noexcept { return m_Device; }
 
@@ -62,6 +70,7 @@ private:
 		std::string m_Text;
 		float m_FontSize;
 		float m_Scale;
+		Yukiri::Font m_Font;
 		bool operator==(const ShapeKey&) const = default;
 	};
 	struct ShapeHash
@@ -74,7 +83,7 @@ private:
 		ShapedText m_Shaped;
 		std::size_t m_Bytes;
 	};
-	ShapedText ShapeUncached(std::string_view text, float fontSize, float scale);
+	ShapedText ShapeUncached(std::string_view text, float fontSize, float scale, const Yukiri::Font& font);
 	std::list<CachedShape> m_Shapes;
 	std::unordered_map<ShapeKey, std::list<CachedShape>::iterator, ShapeHash> m_ShapeIndex;
 	ShapedText m_Uncached;
@@ -91,11 +100,16 @@ private:
 	};
 	struct Page { std::uint32_t m_Texture; int m_X = 1; int m_Y = 1; int m_RowHeight = 0; };
 	TextEngine() = default;
-	Result<Glyph> GetGlyph(Font& font, std::uint32_t glyph, unsigned pixels);
-	Font& ChooseFont(std::string_view grapheme);
+	Result<Glyph> GetGlyph(FontFace& font, std::uint32_t glyph, unsigned pixels);
+	FontFace& ChooseFont(std::string_view grapheme, const Yukiri::Font& font);
+	Result<std::unique_ptr<FontFace>> LoadFace(const std::filesystem::path& path, long index, bool reuseData = true);
+	FontFace* ResolveFace(const Yukiri::Font& font);
 	FT_Library m_Library = nullptr;
 	RenderDevice* m_Device = nullptr;
-	std::vector<std::unique_ptr<Font>> m_Fonts;
+	std::vector<std::unique_ptr<FontFace>> m_Fonts;
+	std::vector<FontFace*> m_FallbackFonts;
+	std::map<std::tuple<std::string, int, bool>, FontFace*> m_FaceChoices;
+	std::map<std::filesystem::path, std::weak_ptr<const std::vector<unsigned char>>> m_FontBytes;
 	std::unordered_map<std::uint64_t, Glyph> m_Glyphs;
 	std::vector<Page> m_Pages;
 	std::uint32_t m_NextFont = 0;

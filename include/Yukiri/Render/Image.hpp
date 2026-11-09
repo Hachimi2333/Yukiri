@@ -22,6 +22,7 @@ public:
 	[[nodiscard]] std::span<const std::uint8_t> GetPixels() const noexcept;
 	[[nodiscard]] bool IsVector() const noexcept;
 	[[nodiscard]] explicit operator bool() const noexcept;
+	bool operator==(const Image&) const noexcept = default;
 private:
 	friend class Detail::RenderDevice;
 	explicit Image(std::shared_ptr<const Detail::ImageData> data);

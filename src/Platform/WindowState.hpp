@@ -33,7 +33,7 @@ struct Window::Impl
 	[[nodiscard]] Detail::FramePacer::Time NextUpdate(Detail::FramePacer::Time now) const;
 	std::unique_ptr<Detail::WindowChrome> m_Chrome;
 	std::unique_ptr<Detail::WindowEvents> m_Events;
-	std::array<SDL_Cursor*, 3> m_Cursors{};
+	std::array<SDL_Cursor*, 5> m_Cursors{};
 	void HandleEvent(const SDL_Event& event);
 };
 }

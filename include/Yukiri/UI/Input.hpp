@@ -16,7 +16,7 @@ enum class Key
 	Shift, Control, Alt, Super, CapsLock, NumLock, ScrollLock, PrintScreen, Pause
 };
 enum class PointerButton { None, Left, Middle, Right };
-enum class Cursor { Arrow, Hand, Text };
+enum class Cursor { Arrow, Hand, Text, ResizeHorizontal, ResizeVertical };
 
 struct Modifiers
 {

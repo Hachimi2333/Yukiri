@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Yukiri/Core/Geometry.hpp>
+#include <Yukiri/Text/Font.hpp>
 #include <string_view>
 #include <cstdint>
 #include <vector>
@@ -26,6 +27,7 @@ public:
 	void Save();
 	void Restore();
 	void SetOffset(Point offset);
+	void SetFont(const Font& font);
 	void PushClip(Rect rectangle);
 	void PopClip();
 
@@ -34,7 +36,7 @@ private:
 	friend class Widget;
 	friend class Detail::WindowChrome;
 	void DrawImage(Rect rectangle, std::uint32_t texture);
-	struct State { Point m_Offset; std::vector<Rect> m_Clips; };
+	struct State { Point m_Offset; std::vector<Rect> m_Clips; Font m_Font; };
 	Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text = nullptr, float scale = 1);
 	[[nodiscard]] Rect ToGlobal(Rect rectangle) const;
 	Detail::DrawList& m_List;

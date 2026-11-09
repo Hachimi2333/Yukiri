@@ -112,6 +112,12 @@ const Theme& Widget::GetTheme() const noexcept
 	return Default;
 }
 float Widget::GetFontSize() const noexcept { return m_Style.m_FontSize.value_or(GetTheme().m_FontSize); }
+const Font& Widget::GetFont() const noexcept
+{
+	if (m_Style.m_Font) return *m_Style.m_Font;
+	if (m_ThemeOverride) return m_ThemeOverride->m_Font;
+	return m_Parent ? m_Parent->GetFont() : GetTheme().m_Font;
+}
 float Widget::GetRadius() const noexcept { return m_Style.m_Radius.value_or(GetTheme().m_Radius); }
 Color Widget::GetForeground() const noexcept
 {
@@ -197,6 +203,7 @@ void Widget::Render(Canvas& canvas)
 	}
 	canvas.Save();
 	canvas.SetOffset({m_Bounds.m_X, m_Bounds.m_Y});
+	canvas.SetFont(GetFont());
 	canvas.PushClip(GetLocalBounds());
 	OnPaint(canvas);
 	const auto childClip = GetChildrenClip();
@@ -237,7 +244,7 @@ void Widget::ReleasePointer()
 Size Widget::MeasureText(std::string_view text, float fontSize) const
 {
 	const auto size = fontSize > 0 ? fontSize : GetFontSize();
-	return m_Tree && m_Tree->m_MeasureText ? m_Tree->m_MeasureText(text, size) : Size{0, size * 1.5f};
+	return m_Tree && m_Tree->m_MeasureText ? m_Tree->m_MeasureText(text, size, GetFont()) : Size{0, size * 1.5f};
 }
 void Widget::PaintFocus(Canvas& canvas) const
 {

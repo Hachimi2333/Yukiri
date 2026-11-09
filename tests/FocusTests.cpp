@@ -92,7 +92,7 @@ TEST_CASE("Focus display mode is isolated and survives safe focus removal", "[fo
 TEST_CASE("Selection focus regions tightly surround padded icons and labels", "[focus]")
 {
 	Yukiri::Detail::WidgetTree tree;
-	tree.m_MeasureText = [](std::string_view text, float) { return Yukiri::Size{static_cast<float>(text.size()) * 8, 20}; };
+	tree.m_MeasureText = [](std::string_view text, float, const Yukiri::Font&) { return Yukiri::Size{static_cast<float>(text.size()) * 8, 20}; };
 	auto root = std::make_unique<Yukiri::StackPanel>();
 	auto& check = root->AddChild<FocusProbe<Yukiri::CheckBox>>("Label");
 	auto& radio = root->AddChild<FocusProbe<Yukiri::RadioButton>>("Label");

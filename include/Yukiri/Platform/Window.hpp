@@ -50,9 +50,10 @@ public:
 	[[nodiscard]] Result<void> Minimize();
 	[[nodiscard]] Result<void> Maximize();
 	[[nodiscard]] Result<void> Restore();
-	[[nodiscard]] Size MeasureText(std::string_view text, float fontSize = 14) const;
-	[[nodiscard]] float GetTextCaretX(std::string_view text, std::size_t offset, float fontSize = 14) const;
-	[[nodiscard]] std::size_t HitTestText(std::string_view text, float x, float fontSize = 14) const;
+	[[nodiscard]] Size MeasureText(std::string_view text, float fontSize = 14, const Font& font = {}) const;
+	[[nodiscard]] float GetTextCaretX(std::string_view text, std::size_t offset, float fontSize = 14, const Font& font = {}) const;
+	[[nodiscard]] std::size_t HitTestText(std::string_view text, float x, float fontSize = 14, const Font& font = {}) const;
+	[[nodiscard]] std::vector<std::pair<std::size_t, float>> GetTextCarets(std::string_view text, float fontSize = 14, const Font& font = {}) const;
 	[[nodiscard]] bool IsOpen() const noexcept;
 	[[nodiscard]] Size GetSize() const;
 	[[nodiscard]] Rect GetContentBounds() const;

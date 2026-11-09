@@ -88,6 +88,12 @@ std::vector<float> Grid::Resolve(const std::vector<GridLength>& tracks, bool hor
 Size Grid::OnMeasure(Size available)
 {
 	for (auto* child : Children()) child->Measure(available);
+	const auto constrained = Resolve(m_Columns, true, available.m_Width, m_ColumnSpacing, true);
+	for (auto* child : Children())
+	{
+		const auto cell = GetCell(*child);
+		child->Measure({Sum(constrained, cell.m_Column, cell.m_ColumnSpan, m_ColumnSpacing), available.m_Height});
+	}
 	const auto columns = Resolve(m_Columns, true, available.m_Width, m_ColumnSpacing, false);
 	const auto rows = Resolve(m_Rows, false, available.m_Height, m_RowSpacing, false);
 	return {Sum(columns, 0, columns.size(), m_ColumnSpacing), Sum(rows, 0, rows.size(), m_RowSpacing)};
@@ -95,6 +101,11 @@ Size Grid::OnMeasure(Size available)
 void Grid::OnArrange(Rect content)
 {
 	const auto columns = Resolve(m_Columns, true, content.m_Width, m_ColumnSpacing, true);
+	for (auto* child : Children())
+	{
+		const auto cell = GetCell(*child);
+		child->Measure({Sum(columns, cell.m_Column, cell.m_ColumnSpan, m_ColumnSpacing), content.m_Height});
+	}
 	const auto rows = Resolve(m_Rows, false, content.m_Height, m_RowSpacing, true);
 	for (auto* child : Children())
 	{

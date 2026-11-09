@@ -44,7 +44,7 @@ public:
 	bool m_Animating = false;
 	std::function<void()> m_EndTextInput;
 	std::function<void(bool)> m_PointerCapture;
-	std::function<Size(std::string_view, float)> m_MeasureText;
+	std::function<Size(std::string_view, float, const Font&)> m_MeasureText;
 	std::vector<std::shared_ptr<Command>> m_Commands;
 	std::function<bool(KeyEvent&)> m_ApplicationCommand;
 

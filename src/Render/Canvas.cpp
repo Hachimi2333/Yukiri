@@ -68,16 +68,17 @@ void Canvas::Restore()
 	m_Stack.pop_back();
 }
 void Canvas::SetOffset(Point offset) { m_State.m_Offset = offset; }
+void Canvas::SetFont(const Font& font) { m_State.m_Font = font; }
 void Canvas::PushClip(Rect rectangle) { m_State.m_Clips.push_back(m_State.m_Clips.back().Intersect(ToGlobal(rectangle))); }
 void Canvas::PopClip() { assert(m_State.m_Clips.size() > 1); m_State.m_Clips.pop_back(); }
 void Canvas::DrawText(std::string_view text, Point position, Color color, float fontSize)
 {
 	if (!m_Text || text.empty() || m_State.m_Clips.back().Empty()) return;
-	auto result = m_Text->Draw(m_List, text, position + m_State.m_Offset, color, fontSize, m_Scale, m_State.m_Clips.back());
+	auto result = m_Text->Draw(m_List, text, position + m_State.m_Offset, color, fontSize, m_Scale, m_State.m_Clips.back(), m_State.m_Font);
 	if (!result && !m_List.m_Error) m_List.m_Error = result.error();
 }
 Size Canvas::MeasureText(std::string_view text, float fontSize) const
 {
-	return m_Text ? m_Text->Measure(text, fontSize, m_Scale) : Size{};
+	return m_Text ? m_Text->Measure(text, fontSize, m_Scale, m_State.m_Font) : Size{};
 }
 }

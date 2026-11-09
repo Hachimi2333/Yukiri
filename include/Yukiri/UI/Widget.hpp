@@ -57,6 +57,7 @@ public:
 	[[nodiscard]] const WidgetStyle& GetStyle() const noexcept;
 	[[nodiscard]] const Theme& GetTheme() const noexcept;
 	[[nodiscard]] float GetFontSize() const noexcept;
+	[[nodiscard]] const Font& GetFont() const noexcept;
 	[[nodiscard]] float GetRadius() const noexcept;
 	[[nodiscard]] Color GetForeground() const noexcept;
 	[[nodiscard]] Insets GetMargin() const noexcept;

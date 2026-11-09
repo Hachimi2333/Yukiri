@@ -19,6 +19,7 @@ protected:
 	Size OnMeasure(Size available) override;
 	void OnPaint(Canvas& canvas) override;
 	void Activate() override;
+	void OnCommandChecked(bool checkable, bool checked) override;
 private:
 	bool m_Checked;
 };

@@ -2,6 +2,7 @@
 #include "Platform/CloseState.hpp"
 #include <Yukiri/Controls/Button.hpp>
 #include <Yukiri/Controls/TextBox.hpp>
+#include <Yukiri/Controls/CheckBox.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Command scopes respect focused editing, disabled commands, repeats, and AltGr", "[commands]")
@@ -98,4 +99,27 @@ TEST_CASE("Window activation restores live focus and forgets destroyed descendan
 	container->ClearChildren();
 	tree.GainedFocus();
 	REQUIRE_FALSE(tree.m_Focus);
+}
+
+TEST_CASE("Checkable command state stays synchronized with bound controls", "[commands]")
+{
+	auto command = std::make_shared<Yukiri::Command>("Option");
+	command->SetCheckable(true);
+	command->SetChecked(true);
+	Yukiri::Detail::WidgetTree tree;
+	auto owned = std::make_unique<Yukiri::CheckBox>();
+	auto& box = *owned;
+	box.SetCommand(command);
+	tree.SetRoot(std::move(owned));
+	tree.Layout({100, 40});
+	REQUIRE(box.IsChecked());
+	Yukiri::KeyEvent pressed{Yukiri::Key::Space};
+	Yukiri::KeyEvent released{Yukiri::Key::Space};
+	box.OnKeyDown(pressed);
+	box.OnKeyUp(released);
+	REQUIRE_FALSE(command->IsChecked());
+	REQUIRE_FALSE(box.IsChecked());
+	command->SetChecked(true);
+	REQUIRE(box.IsChecked());
+	REQUIRE_FALSE(tree.m_LayoutDirty);
 }

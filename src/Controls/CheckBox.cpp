@@ -13,8 +13,11 @@ void CheckBox::SetChecked(bool checked)
 	m_CheckVisual.Retarget(checked ? 1.0f : 0.0f, MotionDuration(GetTheme().m_Motion.m_SelectionDuration));
 	RequestAnimationFrame();
 	InvalidatePaint();
-	m_CheckedChanged.Emit(checked);
+	const auto lifetime = ObserveLifetime();
+	if (auto command = GetCommand(); command && command->IsCheckable()) command->SetChecked(checked);
+	if (!lifetime.expired()) m_CheckedChanged.Emit(checked);
 }
+void CheckBox::OnCommandChecked(bool checkable, bool checked) { if (checkable) SetChecked(checked); }
 bool CheckBox::OnAnimate(std::chrono::nanoseconds delta)
 {
 	const float previous = m_CheckVisual.GetValue();

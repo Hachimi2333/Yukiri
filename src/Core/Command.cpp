@@ -9,6 +9,8 @@ bool KeyGesture::Matches(const KeyEvent& event) const noexcept
 }
 Command::Command(std::string text) : m_Text(std::move(text)) {}
 const std::string& Command::GetText() const noexcept { return m_Text; }
+const Image& Command::GetIcon() const noexcept { return m_Icon; }
+void Command::SetIcon(Image icon) { m_Icon = std::move(icon); m_Changed.Emit(); }
 bool Command::IsEnabled() const noexcept { return m_Enabled; }
 bool Command::IsCheckable() const noexcept { return m_Checkable; }
 bool Command::IsChecked() const noexcept { return m_Checked; }

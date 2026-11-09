@@ -11,11 +11,15 @@
 #include <Yukiri/Render/Canvas.hpp>
 #include <Yukiri/Render/Image.hpp>
 #include <Yukiri/Controls/ImageView.hpp>
+#include <Yukiri/Text/Font.hpp>
 #include <Yukiri/Styling/Theme.hpp>
 #include <Yukiri/UI/Widget.hpp>
 #include <Yukiri/Layout/Grid.hpp>
 #include <Yukiri/Layout/Overlay.hpp>
 #include <Yukiri/Layout/StackPanel.hpp>
+#include <Yukiri/Layout/Border.hpp>
+#include <Yukiri/Layout/WrapPanel.hpp>
+#include <Yukiri/Layout/SplitPanel.hpp>
 #include <Yukiri/Controls/Label.hpp>
 #include <Yukiri/Controls/Button.hpp>
 #include <Yukiri/Controls/CheckBox.hpp>

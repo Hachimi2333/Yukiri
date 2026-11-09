@@ -2,6 +2,7 @@
 
 #include <Yukiri/Core/Geometry.hpp>
 #include <Yukiri/Styling/MotionSettings.hpp>
+#include <Yukiri/Text/Font.hpp>
 #include <optional>
 
 namespace Yukiri
@@ -24,6 +25,7 @@ struct Theme
 	float m_ControlHeight = 34;
 	float m_Spacing = 8;
 	MotionSettings m_Motion{};
+	Font m_Font{};
 	[[nodiscard]] static Theme Light() noexcept;
 	[[nodiscard]] static Theme Dark() noexcept;
 };
@@ -37,5 +39,6 @@ struct WidgetStyle
 	std::optional<Color> m_Pressed;
 	std::optional<float> m_Radius;
 	std::optional<float> m_FontSize;
+	std::optional<Font> m_Font;
 };
 }

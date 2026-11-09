@@ -89,6 +89,14 @@ Command 使用 m_Executed 执行动作，m_Changed 通知文字、启用、勾�
 
 Window 提供 Show / Hide / Activate / SetOwner，所属关系禁止成环；所有权观察指针在所属窗口关闭时清空。m_SizeChanged / m_StateChanged 报告平台窗口通知，m_FilesDropped 提供一批 filesystem::path。真实平台行为需要用户启动桌面验收。按钮 Space 在释放时激活，Enter 在按下时激活；窗口重新获得焦点时恢复仍然有效的最近焦点，但不主动显示键盘焦点框。
 
+## 字体、文字与自适应布局
+
+Font 描述 UTF-8 字体族、100..900 字重（默认 400）及斜体，空字体族沿用默认回退。Theme::m_Font 提供主题默认，WidgetStyle::m_Font 提供整个字体描述的局部覆盖；字体描述沿父控件继承，字号继续由既有 m_FontSize 控制。不存在的字体回退到系统链。Windows 按实际字体族 / 字重 / 斜体查找文件，变量字体设置相应轴，缺少样式时合成粗体 / 斜体。测量、绘制、文本框光标及命中共享字体描述；原有无 Font 参数调用继续有效。
+
+Label 支持 SetWrap、SetEllipsis、SetTextAlignment；省略号用于非换行文本，换行模式保留显式换行并按 Unicode 单词边界选择断点，过长单词按字素拆分。Border 接管一个内容控件，默认 12 DIP 内边距。WrapPanel 按方向换行并跳过隐藏子控件。SplitPanel::SetContent 需要两个非空内容，支持方向、比例、最小尺寸、键盘方向键 / Home / End、Shift 精细调整及直接拖动；空间不足时按最小尺寸比例压缩。结构内容通过 SetContent 管理，不直接移除其内部子控件。
+
+Button 和 Command 可使用 SetIcon 提供 Image；命令绑定同步按钮图标，按钮文字在窄宽度下使用字素安全的省略号。普通按钮显示命令的勾选状态，动作负责修改状态；CheckBox / ToggleSwitch / RadioButton 绑定可勾选命令后会同步状态，用户切换控件时先更新该状态再执行命令。
+
 ## 图片
 
 Image 是可复制的共享不可变资源，Load 接受 filesystem::path，FromMemory 接受编码字节，FromRgba 接受精确的 width * height * 4 字节。GetPixels 返回资源持有期间有效的直通 Alpha RGBA8 视图；SVG 的该视图为原始尺寸栅格结果，绘制时另按 DPI 重栅格化。支持 PNG / JPEG / BMP / ICO 与静态 SVG，不支持动画图像；SVG 使用自包含文档，不承诺外部资源或完整浏览器 SVG 特性。

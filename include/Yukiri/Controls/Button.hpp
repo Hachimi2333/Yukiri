@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Yukiri/UI/Widget.hpp>
+#include <Yukiri/Render/Image.hpp>
 #include <string>
 
 namespace Yukiri
@@ -12,6 +13,8 @@ public:
 	void SetText(std::string_view text);
 	[[nodiscard]] const std::string& GetText() const noexcept;
 	void SetAccent(bool accent);
+	void SetIcon(Image icon);
+	[[nodiscard]] const Image& GetIcon() const noexcept;
 	void SetCommand(std::shared_ptr<Command> command);
 	[[nodiscard]] std::shared_ptr<Command> GetCommand() const noexcept;
 	void OnPointerDown(PointerEvent& event) override;
@@ -26,6 +29,7 @@ protected:
 	Size OnMeasure(Size available) override;
 	void OnPaint(Canvas& canvas) override;
 	virtual void Activate();
+	virtual void OnCommandChecked(bool checkable, bool checked);
 	bool m_Pressed = false;
 	bool m_Armed = false;
 private:
@@ -34,5 +38,6 @@ private:
 	bool m_KeyboardPressed = false;
 	std::shared_ptr<Command> m_Command;
 	Connection m_CommandChanged;
+	Image m_Icon;
 };
 }

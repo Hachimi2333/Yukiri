@@ -2,6 +2,7 @@
 
 #include <Yukiri/Core/Signal.hpp>
 #include <Yukiri/UI/Input.hpp>
+#include <Yukiri/Render/Image.hpp>
 #include <optional>
 #include <string>
 
@@ -20,6 +21,8 @@ class Command
 public:
 	explicit Command(std::string text = {});
 	void SetText(std::string text);
+	void SetIcon(Image icon);
+	[[nodiscard]] const Image& GetIcon() const noexcept;
 	void SetEnabled(bool enabled);
 	void SetCheckable(bool checkable);
 	void SetChecked(bool checked);
@@ -36,6 +39,7 @@ public:
 	Signal<> m_Changed;
 private:
 	std::string m_Text;
+	Image m_Icon;
 	std::optional<KeyGesture> m_Shortcut;
 	bool m_Enabled = true;
 	bool m_Checkable = false;

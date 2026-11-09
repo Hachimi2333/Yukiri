@@ -6,7 +6,7 @@
 namespace Yukiri
 {
 ImageView::ImageView(Image image) : m_Image(std::move(image)) {}
-void ImageView::SetImage(Image image) { m_Image = std::move(image); InvalidateLayout(); }
+void ImageView::SetImage(Image image) { if (m_Image == image) return; m_Image = std::move(image); InvalidateLayout(); }
 const Image& ImageView::GetImage() const noexcept { return m_Image; }
 void ImageView::SetStretch(Stretch stretch) { m_Stretch = stretch; InvalidateLayout(); }
 Size ImageView::OnMeasure(Size available)
