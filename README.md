@@ -170,6 +170,7 @@ Most developer documentation is currently in Chinese:
 - [Building, packaging, and integration](docs/Building.md)
 - [Architecture](docs/Architecture.md), [rendering](docs/Rendering.md), [text](docs/Text.md), and [styling](docs/Styling.md)
 - [Design decisions](docs/Decisions.md), [project status](docs/Status.md), and [roadmap](FUTURE.md)
+- [Desktop foundations milestone](docs/DesktopFoundations.md) and [user-run desktop checks](docs/ManualTesting.md)
 
 Before contributing, read [AGENTS.md](AGENTS.md). Keep changes focused, use actual tabs and the established C++ naming conventions, update the relevant documentation, and use Conventional Commits with explanatory English bodies.
 
@@ -177,8 +178,8 @@ CPU tests run with `-Test`. GPU and package checks are separate local tools:
 
 ```powershell
 ./tools/GpuSmoke.ps1 -Preset msvc-debug
-./tools/VerifyPackage.ps1 -Preset msvc-debug
-./tools/VerifyPackage.ps1 -Preset msvc-debug -Source
+./tools/VerifyPackage.ps1 -Preset msvc-debug -BuildOnly
+./tools/VerifyPackage.ps1 -Preset msvc-debug -Source -BuildOnly
 ```
 
 Install the same preset before running the installed-package check. Record actual compiler, GPU, and desktop interaction results in [Validation.md](docs/Validation.md). The repository intentionally has no GitHub Actions workflow.

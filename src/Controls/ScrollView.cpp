@@ -163,6 +163,7 @@ void ScrollView::OnPointerUp(PointerEvent& event)
 	}
 }
 void ScrollView::OnFocusChanged(bool focused) { if (!focused) { m_DragAxis = 0; ReleasePointer(); } InvalidatePaint(); }
+void ScrollView::OnPointerCaptureLost() { m_DragAxis = 0; InvalidatePaint(); }
 void ScrollView::OnKeyDown(KeyEvent& event)
 {
 	Point offset = m_Target;

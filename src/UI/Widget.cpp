@@ -94,7 +94,11 @@ void Widget::SetEnabled(bool enabled)
 	InvalidatePaint();
 	if (!enabled && m_Tree) m_Tree->Forget(this);
 }
-void Widget::SetFocusable(bool focusable) { m_Focusable = focusable; }
+void Widget::SetFocusable(bool focusable)
+{
+	m_Focusable = focusable;
+	if (!focusable && HasFocus()) m_Tree->SetFocus(nullptr);
+}
 void Widget::SetCursor(Cursor cursor) { m_Cursor = cursor; }
 void Widget::SetStyle(WidgetStyle style) { m_Style = std::move(style); InvalidateLayout(); }
 void Widget::SetThemeOverride(std::optional<Theme> theme) { m_ThemeOverride = std::move(theme); InvalidateLayout(); }
@@ -129,6 +133,8 @@ Window* Widget::GetWindow() const noexcept { return m_Tree ? m_Tree->m_Window : 
 Point Widget::ToLocal(Point global) const noexcept { return {global.m_X - m_Bounds.m_X, global.m_Y - m_Bounds.m_Y}; }
 Rect Widget::GetLocalBounds() const noexcept { return {0, 0, m_Bounds.m_Width, m_Bounds.m_Height}; }
 void Widget::Keep(Connection connection) { m_Connections.push_back(std::move(connection)); }
+void Widget::AddCommand(std::shared_ptr<Command> command) { if (command) m_Commands.push_back(std::move(command)); }
+void Widget::RemoveCommand(const Command& command) { std::erase_if(m_Commands, [&](const auto& entry) { return entry.get() == &command; }); }
 
 void Widget::Measure(Size available)
 {
@@ -221,14 +227,12 @@ void Widget::RequestFocus() { if (m_Tree) m_Tree->SetFocus(this); }
 void Widget::CapturePointer()
 {
 	if (!m_Tree) return;
-	m_Tree->m_Capture = this;
-	if (m_Tree->m_PointerCapture) m_Tree->m_PointerCapture(true);
+	m_Tree->SetCapture(this);
 }
 void Widget::ReleasePointer()
 {
 	if (!m_Tree || m_Tree->m_Capture != this) return;
-	m_Tree->m_Capture = nullptr;
-	if (m_Tree->m_PointerCapture) m_Tree->m_PointerCapture(false);
+	m_Tree->SetCapture(nullptr);
 }
 Size Widget::MeasureText(std::string_view text, float fontSize) const
 {
@@ -254,8 +258,12 @@ Rect Widget::GetChildrenClip() const noexcept { return m_Bounds; }
 void Widget::OnPointerDown(PointerEvent&) {}
 void Widget::OnPointerUp(PointerEvent&) {}
 void Widget::OnPointerMove(PointerEvent&) {}
+void Widget::OnPointerEnter() {}
+void Widget::OnPointerLeave() {}
+void Widget::OnPointerCaptureLost() {}
 void Widget::OnWheel(PointerEvent&) {}
 void Widget::OnKeyDown(KeyEvent&) {}
+void Widget::OnKeyUp(KeyEvent&) {}
 void Widget::OnTextInput(std::string_view) {}
 void Widget::OnTextEditing(std::string_view, int, int) {}
 void Widget::OnFocusChanged(bool) {}

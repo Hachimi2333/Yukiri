@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Yukiri/Core/Geometry.hpp>
+#include <Yukiri/Core/Command.hpp>
 #include <Yukiri/Core/Detail/Transition.hpp>
 #include <Yukiri/Core/Signal.hpp>
 #include <Yukiri/Styling/Theme.hpp>
@@ -81,6 +82,8 @@ public:
 	void CapturePointer();
 	void ReleasePointer();
 	void Keep(Connection connection);
+	void AddCommand(std::shared_ptr<Command> command);
+	void RemoveCommand(const Command& command);
 	void BringIntoView();
 	[[nodiscard]] Size MeasureText(std::string_view text, float fontSize = 0) const;
 	[[nodiscard]] Point ToLocal(Point global) const noexcept;
@@ -88,8 +91,12 @@ public:
 	virtual void OnPointerDown(PointerEvent& event);
 	virtual void OnPointerUp(PointerEvent& event);
 	virtual void OnPointerMove(PointerEvent& event);
+	virtual void OnPointerEnter();
+	virtual void OnPointerLeave();
+	virtual void OnPointerCaptureLost();
 	virtual void OnWheel(PointerEvent& event);
 	virtual void OnKeyDown(KeyEvent& event);
+	virtual void OnKeyUp(KeyEvent& event);
 	virtual void OnTextInput(std::string_view text);
 	virtual void OnTextEditing(std::string_view text, int start, int length);
 	virtual void OnFocusChanged(bool focused);
@@ -131,6 +138,7 @@ private:
 	bool Tick(std::chrono::steady_clock::time_point now);
 	std::vector<std::unique_ptr<Widget>> m_Children;
 	std::vector<Connection> m_Connections;
+	std::vector<std::shared_ptr<Command>> m_Commands;
 	std::shared_ptr<int> m_Lifetime = std::make_shared<int>(0);
 	Widget* m_Parent = nullptr;
 	Detail::WidgetTree* m_Tree = nullptr;

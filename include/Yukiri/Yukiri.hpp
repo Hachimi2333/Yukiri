@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Yukiri/Core/Error.hpp>
+#include <Yukiri/Core/Dispatcher.hpp>
+#include <Yukiri/Core/Command.hpp>
 #include <Yukiri/Core/Geometry.hpp>
 #include <Yukiri/Core/Signal.hpp>
 #include <Yukiri/Core/Version.hpp>

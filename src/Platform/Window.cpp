@@ -23,6 +23,7 @@ Window::Window(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl))
 
 Window::~Window()
 {
+	m_Impl->m_Events.reset();
 	m_Impl->m_Statistics.Print(SDL_GetWindowID(m_Impl->m_Native), m_Impl->m_Pacer.GetInterval());
 	m_Impl->m_Tree.SetRoot(nullptr);
 	m_Impl->m_Chrome.reset();
@@ -36,11 +37,15 @@ void Window::SetTitle(std::string_view title)
 {
 	m_Impl->m_Config.m_Title = title;
 	SDL_SetWindowTitle(m_Impl->m_Native, m_Impl->m_Config.m_Title.c_str());
+	Invalidate();
 }
 
-void Window::Close() { m_Impl->m_Open = false; }
+void Window::Close() { m_Impl->m_Close.Request(); }
+void Window::AddCommand(std::shared_ptr<Command> command) { if (command) m_Impl->m_Tree.m_Commands.push_back(std::move(command)); }
+void Window::RemoveCommand(const Command& command) { std::erase_if(m_Impl->m_Tree.m_Commands, [&](const auto& entry) { return entry.get() == &command; }); }
+Window* Window::GetOwner() const noexcept { return m_Impl->m_ParentWindow; }
 void Window::Invalidate() { m_Impl->m_Dirty = m_Impl->m_Tree.m_Dirty = true; }
-bool Window::IsOpen() const noexcept { return m_Impl->m_Open; }
+bool Window::IsOpen() const noexcept { return m_Impl->m_Close.m_Open; }
 const WindowConfig& Window::GetConfig() const noexcept { return m_Impl->m_Config; }
 
 Size Window::GetSize() const
@@ -118,6 +123,27 @@ Result<void> Window::SetSize(Size size)
 Result<void> Window::Minimize() { return PlatformOperation(SDL_MinimizeWindow(m_Impl->m_Native)); }
 Result<void> Window::Maximize() { return PlatformOperation(SDL_MaximizeWindow(m_Impl->m_Native)); }
 Result<void> Window::Restore() { return PlatformOperation(SDL_RestoreWindow(m_Impl->m_Native)); }
+Result<void> Window::Show()
+{
+	auto result = PlatformOperation(SDL_ShowWindow(m_Impl->m_Native));
+	if (result) { m_Impl->m_Config.m_Visible = true; Invalidate(); }
+	return result;
+}
+Result<void> Window::Hide()
+{
+	auto result = PlatformOperation(SDL_HideWindow(m_Impl->m_Native));
+	if (result) { m_Impl->m_Config.m_Visible = false; m_Impl->m_Tree.LostFocus(); }
+	return result;
+}
+Result<void> Window::Activate() { return PlatformOperation(SDL_RaiseWindow(m_Impl->m_Native)); }
+Result<void> Window::SetOwner(Window* owner)
+{
+	for (auto* ancestor = owner; ancestor; ancestor = ancestor->GetOwner())
+		if (ancestor == this) return std::unexpected(Error{ErrorCode::InvalidArgument, "Window ownership must not contain a cycle."});
+	auto result = PlatformOperation(SDL_SetWindowParent(m_Impl->m_Native, owner ? owner->m_Impl->m_Native : nullptr));
+	if (result) m_Impl->m_ParentWindow = owner;
+	return result;
+}
 
 void Window::Impl::RefreshRate()
 {
@@ -127,7 +153,7 @@ void Window::Impl::RefreshRate()
 }
 Detail::FramePacer::Time Window::Impl::NextUpdate(Detail::FramePacer::Time now) const
 {
-	if (!m_Open) return now;
+	if (!m_Close.m_Open || m_Close.m_Pending) return now;
 	if (SDL_GetWindowFlags(m_Native) & SDL_WINDOW_MINIMIZED) return Detail::FramePacer::Time::max();
 	if (m_Dirty || m_Tree.m_Dirty || m_Tree.m_Animating) return m_Pacer.GetDeadline();
 	if (m_Tree.m_Focus && m_Tree.m_Focus->AcceptsTextInput())

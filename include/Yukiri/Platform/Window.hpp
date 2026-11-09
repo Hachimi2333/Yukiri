@@ -8,11 +8,19 @@
 
 #include <memory>
 #include <string_view>
+#include <filesystem>
+#include <vector>
 
 namespace Yukiri
 {
 class Application;
 class Widget;
+class Command;
+
+struct CloseRequestEvent
+{
+	bool m_Cancel = false;
+};
 
 class Window final
 {
@@ -22,6 +30,13 @@ public:
 	Window& operator=(const Window&) = delete;
 	void SetTitle(std::string_view title);
 	void Close();
+	[[nodiscard]] Result<void> Show();
+	[[nodiscard]] Result<void> Hide();
+	[[nodiscard]] Result<void> Activate();
+	[[nodiscard]] Result<void> SetOwner(Window* owner);
+	[[nodiscard]] Window* GetOwner() const noexcept;
+	void AddCommand(std::shared_ptr<Command> command);
+	void RemoveCommand(const Command& command);
 	void Invalidate();
 	void SetContent(std::unique_ptr<Widget> content);
 	[[nodiscard]] Widget* GetContent() const noexcept;
@@ -44,6 +59,10 @@ public:
 	[[nodiscard]] float GetScale() const;
 	[[nodiscard]] const WindowConfig& GetConfig() const noexcept;
 	Signal<> m_Closed;
+	Signal<CloseRequestEvent&> m_CloseRequested;
+	Signal<Size> m_SizeChanged;
+	Signal<> m_StateChanged;
+	Signal<std::vector<std::filesystem::path>> m_FilesDropped;
 
 private:
 	friend class Application;

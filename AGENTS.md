@@ -10,6 +10,7 @@
 - A parent exclusively owns its children through `std::unique_ptr`. Observers do not own widgets. Defer destruction during input, layout, and paint dispatch. UI mutation and rendering run on the application thread.
 - Use RAII, the rule of zero where practical, explicit ownership, and the C++ Core Guidelines. Fallible initialization and resource operations return `std::expected<..., Error>`.
 - Confirm new important public names with the user. Approved names include Yukiri, Application, Window, Widget, Canvas, Theme, ApplicationConfig, WindowConfig, WindowDecoration, ThemeMode, Signal, Connection, Error, ErrorCode, MotionSettings, OnAnimate, RequestAnimationFrame, SetSmoothScrolling, IsFocusVisible, and GetFocusBounds.
+- The approved 0.2 names and delivery checklist are in docs/DesktopFoundations.md. Keep completed capabilities distinct from pending milestones.
 
 ## Source style
 
@@ -30,6 +31,7 @@
 - Animate visual state using elapsed time; update logical values and emit notifications immediately. Finished or hidden motion must not keep scheduling frames.
 - Run meaningful Catch2 / CTest coverage for changed behavior. GPU and desktop interaction checks are separate from headless tests.
 - Never claim runtime checks from compilation alone. Record compiler, OS, GPU, validation-layer and manual interaction results in docs/Validation.md.
+- Do not use Computer Use, activate visible test windows, inject desktop input, or modify the user's clipboard. Leave GPU and desktop interaction checks for user-initiated validation; package checks must support build/link-only execution.
 - CMake packages target Ninja single-configuration builds; keep compiler families, architectures, and Debug / Release installations isolated.
 - Validate both add_subdirectory and relocated find_package consumption before release.
 

@@ -170,6 +170,7 @@ int main()
 - [构建、安装与集成](docs/Building.md)
 - [架构](docs/Architecture.md)、[渲染](docs/Rendering.md)、[文字](docs/Text.md)和[样式](docs/Styling.md)
 - [设计决策](docs/Decisions.md)、[项目状态](docs/Status.md)和[路线图](FUTURE.md)
+- [桌面基础里程碑](docs/DesktopFoundations.md)与[用户启动的桌面检查](docs/ManualTesting.md)
 
 参与开发前请阅读 [AGENTS.md](AGENTS.md)。保持改动职责集中，使用真实 Tab 缩进及既定 C++ 命名风格，同步相关文档；提交遵循 Conventional Commits，标题与说明正文均使用英文。
 
@@ -177,8 +178,8 @@ int main()
 
 ```powershell
 ./tools/GpuSmoke.ps1 -Preset msvc-debug
-./tools/VerifyPackage.ps1 -Preset msvc-debug
-./tools/VerifyPackage.ps1 -Preset msvc-debug -Source
+./tools/VerifyPackage.ps1 -Preset msvc-debug -BuildOnly
+./tools/VerifyPackage.ps1 -Preset msvc-debug -Source -BuildOnly
 ```
 
 运行安装包消费检查前，先安装相同 preset。将实际编译器、GPU 及桌面操作结果记录在[验证记录](docs/Validation.md)。仓库按项目要求不配置 GitHub Actions 工作流。

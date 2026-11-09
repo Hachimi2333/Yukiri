@@ -17,6 +17,9 @@ public:
 	void PointerMove(PointerEvent event);
 	void Wheel(PointerEvent event);
 	void KeyDown(KeyEvent event);
+	void KeyUp(KeyEvent event);
+	void CancelPointer();
+	void SetCapture(Widget* widget);
 	void TextInput(std::string_view text);
 	void TextEditing(std::string_view text, int start, int length);
 	void SetFocus(Widget* widget, bool bringIntoView = true);
@@ -26,6 +29,7 @@ public:
 		std::function<bool(PointerEvent&)> pointer, std::function<bool(KeyEvent&)> key);
 	void ClosePopup(bool immediate = false);
 	void LostFocus();
+	void GainedFocus();
 	void Tick(std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now());
 	[[nodiscard]] bool OwnsPopup(const Widget* owner) const noexcept { return m_PopupOwner == owner; }
 	[[nodiscard]] bool HasPopup(const Widget* owner) const noexcept { return m_PopupOwner == owner && !m_PopupClosing; }
@@ -41,6 +45,8 @@ public:
 	std::function<void()> m_EndTextInput;
 	std::function<void(bool)> m_PointerCapture;
 	std::function<Size(std::string_view, float)> m_MeasureText;
+	std::vector<std::shared_ptr<Command>> m_Commands;
+	std::function<bool(KeyEvent&)> m_ApplicationCommand;
 
 private:
 	class Dispatch;
@@ -50,6 +56,7 @@ private:
 	void AdvanceFocus(bool backwards);
 	void SetFocusVisible(bool visible);
 	bool m_FocusVisible = false;
+	Widget* m_LastFocus = nullptr;
 	friend class Yukiri::Widget;
 	int m_DispatchDepth = 0;
 	bool m_Flushing = false;

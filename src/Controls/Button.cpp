@@ -8,6 +8,21 @@ Button::Button(std::string text) : m_Text(Detail::SanitizeUtf8(text, true)) { Se
 void Button::SetText(std::string_view text) { m_Text = Detail::SanitizeUtf8(text, true); InvalidateLayout(); }
 const std::string& Button::GetText() const noexcept { return m_Text; }
 void Button::SetAccent(bool accent) { m_Accent = accent; InvalidatePaint(); }
+std::shared_ptr<Command> Button::GetCommand() const noexcept { return m_Command; }
+void Button::SetCommand(std::shared_ptr<Command> command)
+{
+	m_CommandChanged.Disconnect();
+	m_Command = std::move(command);
+	if (!m_Command) return;
+	auto synchronize = [this]
+	{
+		SetText(m_Command->GetText());
+		InvalidatePaint();
+		SetEnabled(m_Command->IsEnabled());
+	};
+	m_CommandChanged = m_Command->m_Changed.Connect(synchronize);
+	synchronize();
+}
 Size Button::OnMeasure(Size) { return {std::max(72.0f, MeasureText(m_Text).m_Width + 28), GetTheme().m_ControlHeight}; }
 void Button::OnPointerDown(PointerEvent& event)
 {
@@ -36,18 +51,39 @@ void Button::OnPointerUp(PointerEvent& event)
 }
 void Button::OnKeyDown(KeyEvent& event)
 {
-	if ((event.m_Key == Key::Space || event.m_Key == Key::Enter) && !event.m_Repeat)
+	if (event.m_Key == Key::Space)
+	{
+		m_Pressed = m_Armed = m_KeyboardPressed = true;
+		InvalidatePaint();
+		event.m_Handled = true;
+	}
+	else if (event.m_Key == Key::Enter && !event.m_Repeat)
 	{
 		event.m_Handled = true;
 		Activate();
 	}
 }
+void Button::OnKeyUp(KeyEvent& event)
+{
+	if (event.m_Key != Key::Space || !m_KeyboardPressed) return;
+	m_Pressed = m_Armed = m_KeyboardPressed = false;
+	event.m_Handled = true;
+	InvalidatePaint();
+	Activate();
+}
+void Button::OnPointerCaptureLost() { m_Pressed = m_Armed = m_KeyboardPressed = false; InvalidatePaint(); }
 void Button::OnFocusChanged(bool focused)
 {
-	if (!focused) { m_Pressed = m_Armed = false; ReleasePointer(); }
+	if (!focused) { m_Pressed = m_Armed = m_KeyboardPressed = false; ReleasePointer(); }
 	InvalidatePaint();
 }
-void Button::Activate() { m_Clicked.Emit(); }
+void Button::Activate()
+{
+	const auto lifetime = ObserveLifetime();
+	auto command = m_Command;
+	if (command && !command->Execute()) return;
+	if (!lifetime.expired()) m_Clicked.Emit();
+}
 void Button::OnPaint(Canvas& canvas)
 {
 	const auto& theme = GetTheme();

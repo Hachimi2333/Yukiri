@@ -1,6 +1,7 @@
 #include <Yukiri/Platform/Application.hpp>
 #include <Yukiri/Platform/Window.hpp>
 #include "WindowState.hpp"
+#include "Core/DispatchQueue.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -26,6 +27,8 @@ struct Application::Impl
 	std::unique_ptr<Detail::TextEngine> m_Text;
 	std::thread::id m_Thread = std::this_thread::get_id();
 	bool m_Polling = false;
+	std::unique_ptr<Detail::DispatchQueue> m_Dispatch;
+	std::vector<std::shared_ptr<Command>> m_Commands;
 };
 
 Application::Application(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl)) {}
@@ -43,6 +46,19 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 	ApplicationActive = true;
 	auto impl = std::make_unique<Impl>();
 	impl->m_Config = config;
+	const auto wakeEvent = SDL_RegisterEvents(1);
+	if (!wakeEvent)
+	{
+		SDL_Quit();
+		ApplicationActive = false;
+		return std::unexpected(Error{ErrorCode::PlatformInitialization, "Registering the dispatcher event failed."});
+	}
+	impl->m_Dispatch = std::make_unique<Detail::DispatchQueue>([wakeEvent]
+	{
+		SDL_Event event{};
+		event.type = wakeEvent;
+		SDL_PushEvent(&event);
+	});
 	auto text = Detail::TextEngine::Create();
 	if (!text)
 	{
@@ -56,6 +72,7 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 
 Application::~Application()
 {
+	m_Impl->m_Dispatch->Stop();
 	m_Impl->m_Windows.clear();
 	m_Impl->m_Text.reset();
 	m_Impl->m_Device.reset();
@@ -72,6 +89,12 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 	impl->m_Config = config;
 	impl->m_Text = m_Impl->m_Text.get();
 	impl->m_Motion = m_Impl->m_Config.m_Motion;
+	impl->m_Tree.m_ApplicationCommand = [this](KeyEvent& event)
+	{
+		const auto commands = m_Impl->m_Commands;
+		for (const auto& command : commands) if (command->TryExecute(event)) return true;
+		return false;
+	};
 	const auto flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
 		(config.m_Visible ? 0 : SDL_WINDOW_HIDDEN) |
 		(config.m_Decoration == WindowDecoration::Custom ? SDL_WINDOW_BORDERLESS : 0);
@@ -83,6 +106,10 @@ Result<Window*> Application::CreateWindow(const WindowConfig& config)
 	SDL_SetWindowMinimumSize(impl->m_Native, static_cast<int>(std::lround(static_cast<float>(config.m_MinWidth) * scale)),
 		static_cast<int>(std::lround(static_cast<float>(config.m_MinHeight) * scale)));
 	auto window = std::unique_ptr<Window>(new Window(std::move(impl)));
+	auto events = Detail::WindowEvents::Create(window->m_Impl->m_Native,
+		[observer = window.get()] { observer->m_Impl->m_Tree.CancelPointer(); });
+	if (!events) return std::unexpected(events.error());
+	window->m_Impl->m_Events = std::move(*events);
 	if (!m_Impl->m_Device)
 	{
 		auto device = Detail::RenderDevice::Create(window->m_Impl->m_Native, m_Impl->m_Config.m_EnableValidation);
@@ -148,7 +175,7 @@ Result<bool> Application::Poll(bool wait)
 	if (wait && !m_Impl->m_Windows.empty())
 	{
 		const auto now = Detail::FramePacer::Clock::now();
-		auto deadline = Detail::FramePacer::Time::max();
+		auto deadline = m_Impl->m_Dispatch->NextDeadline();
 		for (const auto& window : m_Impl->m_Windows) deadline = std::min(deadline, window->m_Impl->NextUpdate(now));
 		if (deadline == Detail::FramePacer::Time::max())
 		{
@@ -167,17 +194,32 @@ Result<bool> Application::Poll(bool wait)
 	}
 	// Bound event processing so a continuous input stream cannot starve animation frames.
 	for (int count = 0; count < 256 && SDL_PollEvent(&event); ++count) dispatch(event);
+	m_Impl->m_Dispatch->RunReady();
+	std::vector<Window*> requested;
+	for (const auto& window : m_Impl->m_Windows)
+		if (window->m_Impl->m_Close.m_Pending) requested.push_back(window.get());
+	for (auto* window : requested)
+	{
+		window->m_Impl->m_Close.Process(window->m_CloseRequested);
+	}
 	std::vector<Window*> closing;
 	for (const auto& window : m_Impl->m_Windows)
 	{
-		if (!window->IsOpen() && !window->m_Impl->m_CloseNotified)
+		if (!window->IsOpen() && !window->m_Impl->m_Close.m_Notified)
 		{
-			window->m_Impl->m_CloseNotified = true;
+			window->m_Impl->m_Close.m_Notified = true;
 			closing.push_back(window.get());
 		}
 	}
 	for (auto* window : closing) window->m_Closed.Emit();
-	std::erase_if(m_Impl->m_Windows, [](const auto& window) { return !window->IsOpen() && window->m_Impl->m_CloseNotified; });
+	for (const auto& window : m_Impl->m_Windows)
+		if (window->m_Impl->m_ParentWindow && !window->m_Impl->m_ParentWindow->IsOpen())
+		{
+			auto cleared = window->SetOwner(nullptr);
+			if (!cleared) return std::unexpected(cleared.error());
+		}
+	std::erase_if(m_Impl->m_Windows, [](const auto& window) { return !window->IsOpen() && window->m_Impl->m_Close.m_Notified; });
+	if (!closing.empty() && m_Impl->m_Windows.empty()) m_Impl->m_Dispatch->Stop();
 	std::vector<Window*> windows;
 	for (const auto& window : m_Impl->m_Windows) windows.push_back(window.get());
 	for (auto* window : windows)
@@ -189,6 +231,10 @@ Result<bool> Application::Poll(bool wait)
 	}
 	return !m_Impl->m_Windows.empty();
 }
+
+Dispatcher Application::GetDispatcher() const { return m_Impl->m_Dispatch->GetDispatcher(); }
+void Application::AddCommand(std::shared_ptr<Command> command) { if (command) m_Impl->m_Commands.push_back(std::move(command)); }
+void Application::RemoveCommand(const Command& command) { std::erase_if(m_Impl->m_Commands, [&](const auto& entry) { return entry.get() == &command; }); }
 
 void Application::Quit()
 {

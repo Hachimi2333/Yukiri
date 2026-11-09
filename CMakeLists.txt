@@ -15,6 +15,8 @@ include(cmake/Dependencies.cmake)
 include(cmake/Runtime.cmake)
 
 add_library(Yukiri STATIC src/Core/Version.cpp src/Platform/Application.cpp src/Platform/Window.cpp)
+target_sources(Yukiri PRIVATE src/Core/Dispatcher.cpp src/Core/Command.cpp)
+target_sources(Yukiri PRIVATE src/Platform/WindowEvents.cpp)
 target_sources(Yukiri PRIVATE src/Render/RenderDevice.cpp src/Render/Resources.cpp
 	src/Render/WindowRenderer.cpp src/Render/Pipeline.cpp src/Render/Vma.cpp)
 target_sources(Yukiri PRIVATE src/Render/Canvas.cpp src/UI/Widget.cpp src/UI/WidgetTree.cpp
@@ -99,6 +101,7 @@ if(YUKIRI_BUILD_TESTS)
 	YukiriCopyRuntime(YukiriPlatformSmoke)
 	add_executable(YukiriTests tests/FocusTests.cpp tests/AnimatedControlTests.cpp tests/FramePacerTests.cpp tests/MotionTests.cpp tests/SignalTests.cpp tests/LayoutTests.cpp tests/WidgetTreeTests.cpp tests/TextTests.cpp tests/StyleTests.cpp tests/ControlTests.cpp)
 	target_link_libraries(YukiriTests PRIVATE Yukiri::Yukiri Catch2::Catch2WithMain)
+	target_sources(YukiriTests PRIVATE tests/DispatcherTests.cpp tests/CommandTests.cpp)
 	target_include_directories(YukiriTests PRIVATE src)
 	target_include_directories(YukiriTests PRIVATE third_party/freetype/include "${CMAKE_CURRENT_BINARY_DIR}/third_party/freetype/include" third_party/harfbuzz/src)
 	YukiriCopyRuntime(YukiriTests)

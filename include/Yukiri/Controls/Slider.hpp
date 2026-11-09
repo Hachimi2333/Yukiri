@@ -15,6 +15,7 @@ public:
 	void OnPointerDown(PointerEvent& event) override;
 	void OnPointerMove(PointerEvent& event) override;
 	void OnPointerUp(PointerEvent& event) override;
+	void OnPointerCaptureLost() override;
 	void OnKeyDown(KeyEvent& event) override;
 	void OnFocusChanged(bool focused) override;
 	Signal<float> m_ValueChanged;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Yukiri/Core/Error.hpp>
+#include <Yukiri/Core/Dispatcher.hpp>
 #include <Yukiri/Platform/Config.hpp>
 
 #include <memory>
@@ -13,6 +14,7 @@
 namespace Yukiri
 {
 class Window;
+class Command;
 
 class Application final
 {
@@ -25,6 +27,9 @@ public:
 	[[nodiscard]] Result<void> Run();
 	[[nodiscard]] Result<bool> Poll(bool wait = true);
 	void Quit();
+	[[nodiscard]] Dispatcher GetDispatcher() const;
+	void AddCommand(std::shared_ptr<Command> command);
+	void RemoveCommand(const Command& command);
 	[[nodiscard]] std::uint32_t GetValidationErrorCount() const noexcept;
 	[[nodiscard]] Result<void> LoadFont(const std::filesystem::path& path, long faceIndex = 0);
 

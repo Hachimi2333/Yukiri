@@ -96,6 +96,7 @@ void TextBox::OnPointerUp(PointerEvent& event)
 	ReleasePointer();
 	event.m_Handled = true;
 }
+void TextBox::OnPointerCaptureLost() { m_Impl->m_Dragging = false; }
 void TextBox::OnFocusChanged(bool focused)
 {
 	m_Impl->m_Dragging = false;

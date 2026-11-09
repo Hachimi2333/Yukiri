@@ -18,6 +18,7 @@ public:
 	[[nodiscard]] bool AcceptsTextInput() const noexcept override;
 	void OnPointerDown(PointerEvent& event) override;
 	void OnPointerUp(PointerEvent& event) override;
+	void OnPointerCaptureLost() override;
 	void OnPointerMove(PointerEvent& event) override;
 	void OnKeyDown(KeyEvent& event) override;
 	void OnTextInput(std::string_view text) override;

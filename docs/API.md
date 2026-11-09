@@ -6,7 +6,7 @@ WindowDecoration 提供 Native / Custom，默认为 Custom，创建时确定。T
 
 Application::Create 返回 expected<unique_ptr<Application>, Error>；CreateWindow 返回由 Application 拥有的 Window 观察指针，窗口关闭并完成下一次 Poll 后该指针失效；保存返回的 Connection 以监听 m_Closed，并在回调内清空外部观察指针。Run 驱动主循环，Poll 可用于外部循环。所有窗口 / UI API 在创建 Application 的线程调用。Poll 不可重入；失败返回 ErrorCode::InvalidArgument。
 
-Close 只标记关闭，实际销毁在事件处理的安全边界完成。创建窗口的配置先校验尺寸；m_Visible=false 可用于自动化 smoke。
+Close 合并关闭请求，在下一次 Poll 的安全边界发送 m_CloseRequested。回调可设置 CloseRequestEvent::m_Cancel=true 暂缓关闭，例如异步保存确认；用户确认后再次调用 Close。系统关闭和 Quit 使用相同规则。IsOpen 在请求接受后变为 false，m_Closed 在实际释放之前仅发送一次。创建窗口的配置先校验尺寸；m_Visible=false 可用于用户启动的 GPU smoke。
 
 ## 控件与布局
 
@@ -78,6 +78,16 @@ int main()
 自定义控件继承 Widget，并重写 OnMeasure、OnArrange 或 OnPaint；OnPaint 接收局部坐标 Canvas。逻辑尺寸使用 DIP，Window::GetScale 返回实际缩放，GetContentBounds 返回排除自绘标题栏的全局逻辑内容区域。
 
 Signal::Connect 可带弱生命周期保护；Connection 析构自动断开。回调内允许断开连接或触发其他信号，当前分发使用连接快照。不要在回调内析构正在执行的 Application。
+
+## 调度、命令与窗口服务
+
+Application::GetDispatcher 返回可复制的非拥有调度句柄。后台线程可以 Post 移动专用闭包，或使用弱 owner 重载；闭包只在应用线程执行。一次 Poll 至多执行 256 个已排队任务，回调中新投递的任务留到下一轮。窗口最终退出后以及 Application 析构后，Post 返回错误，不再接受工作；应用应在退出前停止并汇合自己拥有的后台线程。
+
+Dispatcher::CreateTimer 在应用线程创建正间隔定时器，返回移动专用的 Timer。Timer 析构或 Stop 取消后续回调；单次定时器只执行一次，重复定时器落后时不补发历史 tick。回调允许停止或销毁自己的 Timer。定时器不创建线程，事件等待同时考虑其截止时间。任务回调与其他 UI 回调一样，不应抛出异常或递归驱动 Poll。
+
+Command 使用 m_Executed 执行动作，m_Changed 通知文字、启用、勾选或快捷键变化。Command 的勾选状态由应用更新，不自动反转。Button::SetCommand 绑定文字与启用状态；绑定期间应用应通过 Command 设置这两项。Widget、Window 和 Application 的 AddCommand / RemoveCommand 管理相应快捷键作用域。焦点控件先处理编辑按键，再由祖先、窗口和应用命令处理；弹出层优先，Tab 导航最后执行。默认不重复执行按住的快捷键，可用 SetAllowRepeat 开启。AltGr 不触发命令。
+
+Window 提供 Show / Hide / Activate / SetOwner，所属关系禁止成环；所有权观察指针在所属窗口关闭时清空。m_SizeChanged / m_StateChanged 报告平台窗口通知，m_FilesDropped 提供一批 filesystem::path。真实平台行为需要用户启动桌面验收。按钮 Space 在释放时激活，Enter 在按下时激活；窗口重新获得焦点时恢复仍然有效的最近焦点，但不主动显示键盘焦点框。
 
 ## 动画与平滑滚动
 

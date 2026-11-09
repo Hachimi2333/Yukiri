@@ -1,5 +1,7 @@
 # 构建与集成
 
+0.2 开发默认使用不干扰桌面的验证：Build.ps1 的 -Test 只运行 CPU 测试，VerifyPackage.ps1 增加 -BuildOnly，只配置 / 编译 / 链接消费程序，不运行它。GPU 与桌面交互由用户按需启动；具体边界见 [实施清单](DesktopFoundations.md)。
+
 源码构建需要 CMake >= 3.28、Ninja、支持 C++23 的 MSVC 或 MinGW，以及 Vulkan SDK 1.4（本机使用 1.4.363.1）。Windows 运行需要支持 Vulkan 1.4 的驱动；SDK 不替代显卡驱动。
 
 ## 构建

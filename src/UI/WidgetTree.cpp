@@ -27,6 +27,7 @@ bool Within(Widget* candidate, Widget* ancestor)
 WidgetTree::~WidgetTree()
 {
 	m_Focus = m_Capture = m_Hover = nullptr;
+	m_LastFocus = nullptr;
 	ClosePopup(true);
 	m_Root.reset();
 }
@@ -89,6 +90,7 @@ void WidgetTree::SetFocus(Widget* widget, bool bringIntoView)
 {
 	Dispatch dispatch(*this);
 	if (widget && (!widget->IsEnabled() || !widget->IsVisible() || !widget->IsFocusable())) return;
+	for (auto* ancestor = widget; ancestor; ancestor = ancestor->GetParent()) if (!ancestor->IsVisible()) return;
 	if (m_Focus == widget)
 	{
 		if (m_Focus && bringIntoView && m_FocusVisible) m_Focus->BringFocusIntoView();
@@ -108,6 +110,7 @@ void WidgetTree::SetFocusVisible(bool visible)
 void WidgetTree::Forget(Widget* widget)
 {
 	Dispatch dispatch(*this);
+	if (Within(m_LastFocus, widget)) m_LastFocus = nullptr;
 	if (Within(m_Focus, widget))
 	{
 		auto* previous = std::exchange(m_Focus, nullptr);
@@ -116,8 +119,7 @@ void WidgetTree::Forget(Widget* widget)
 	}
 	if (Within(m_Capture, widget))
 	{
-		m_Capture = nullptr;
-		if (m_PointerCapture) m_PointerCapture(false);
+		CancelPointer();
 	}
 	if (Within(m_Hover, widget)) { m_Hover->SetHovered(false); m_Hover = nullptr; }
 	if (Within(m_PopupOwner, widget)) ClosePopup(true);
@@ -156,9 +158,9 @@ void WidgetTree::PointerMove(PointerEvent event)
 	auto* hover = m_Root ? m_Root->HitTest(event.m_Position) : nullptr;
 	if (hover != m_Hover)
 	{
-		if (m_Hover) m_Hover->SetHovered(false);
+		if (m_Hover) { m_Hover->SetHovered(false); m_Hover->OnPointerLeave(); }
 		m_Hover = hover;
-		if (m_Hover) m_Hover->SetHovered(true);
+		if (m_Hover) { m_Hover->SetHovered(true); m_Hover->OnPointerEnter(); }
 		m_Dirty = true;
 	}
 	Route(event, &Widget::OnPointerMove);
@@ -192,7 +194,37 @@ void WidgetTree::KeyDown(KeyEvent event)
 	Dispatch dispatch(*this);
 	if (m_PopupKey && !m_PopupClosing) { auto key = m_PopupKey; if (key(event)) return; }
 	for (auto* widget = m_Focus; widget && !event.m_Handled; widget = widget->GetParent()) widget->OnKeyDown(event);
+	for (auto* widget = m_Focus; widget && !event.m_Handled; widget = widget->GetParent())
+	{
+		const auto commands = widget->m_Commands;
+		for (const auto& command : commands) if (command->TryExecute(event)) break;
+	}
+	if (!event.m_Handled)
+	{
+		const auto commands = m_Commands;
+		for (const auto& command : commands) if (command->TryExecute(event)) break;
+	}
+	if (!event.m_Handled && m_ApplicationCommand) m_ApplicationCommand(event);
 	if (!event.m_Handled && event.m_Key == Key::Tab) { ClosePopup(); AdvanceFocus(event.m_Modifiers.m_Shift); }
+}
+void WidgetTree::KeyUp(KeyEvent event)
+{
+	Dispatch dispatch(*this);
+	for (auto* widget = m_Focus; widget && !event.m_Handled; widget = widget->GetParent()) widget->OnKeyUp(event);
+}
+void WidgetTree::CancelPointer()
+{
+	SetCapture(nullptr);
+}
+void WidgetTree::SetCapture(Widget* widget)
+{
+	Dispatch dispatch(*this);
+	if (m_Capture == widget) return;
+	if (widget && !widget->IsEnabled()) return;
+	for (auto* ancestor = widget; ancestor; ancestor = ancestor->GetParent()) if (!ancestor->IsVisible()) return;
+	auto* previous = std::exchange(m_Capture, widget);
+	if (previous) previous->OnPointerCaptureLost();
+	if (m_PointerCapture) m_PointerCapture(m_Capture != nullptr);
 }
 void WidgetTree::TextInput(std::string_view text) { Dispatch dispatch(*this); if (m_Focus) m_Focus->OnTextInput(text); }
 void WidgetTree::TextEditing(std::string_view text, int start, int length)
@@ -239,8 +271,14 @@ void WidgetTree::LostFocus()
 	Dispatch dispatch(*this);
 	SetFocusVisible(false);
 	ClosePopup(true);
+	m_LastFocus = m_Focus;
 	SetFocus(nullptr);
-	if (m_Capture) m_Capture->ReleasePointer();
+	CancelPointer();
+}
+void WidgetTree::GainedFocus()
+{
+	Dispatch dispatch(*this);
+	if (!m_Focus && m_LastFocus) SetFocus(m_LastFocus, false);
 }
 void WidgetTree::Tick(std::chrono::steady_clock::time_point now)
 {

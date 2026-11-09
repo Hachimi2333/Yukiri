@@ -59,6 +59,7 @@ void Slider::OnPointerUp(PointerEvent& event)
 	ReleasePointer();
 	event.m_Handled = true;
 }
+void Slider::OnPointerCaptureLost() { m_Dragging = false; InvalidatePaint(); }
 void Slider::OnFocusChanged(bool focused) { if (!focused) { m_Dragging = false; ReleasePointer(); } InvalidatePaint(); }
 void Slider::OnKeyDown(KeyEvent& event)
 {

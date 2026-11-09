@@ -8,6 +8,8 @@
 #include "WindowChrome.hpp"
 #include "FramePacer.hpp"
 #include "FrameStatistics.hpp"
+#include "CloseState.hpp"
+#include "WindowEvents.hpp"
 
 namespace Yukiri
 {
@@ -16,8 +18,9 @@ struct Window::Impl
 	SDL_Window* m_Native = nullptr;
 	WindowConfig m_Config;
 	MotionSettings m_Motion;
-	bool m_Open = true;
-	bool m_CloseNotified = false;
+	Detail::CloseState m_Close;
+	Window* m_ParentWindow = nullptr;
+	std::vector<std::filesystem::path> m_DroppedFiles;
 	bool m_Dirty = true;
 	std::unique_ptr<Detail::WindowRenderer> m_Renderer;
 	Detail::WidgetTree m_Tree;
@@ -29,6 +32,7 @@ struct Window::Impl
 	void RefreshRate();
 	[[nodiscard]] Detail::FramePacer::Time NextUpdate(Detail::FramePacer::Time now) const;
 	std::unique_ptr<Detail::WindowChrome> m_Chrome;
+	std::unique_ptr<Detail::WindowEvents> m_Events;
 	std::array<SDL_Cursor*, 3> m_Cursors{};
 	void HandleEvent(const SDL_Event& event);
 };

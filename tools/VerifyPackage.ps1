@@ -1,7 +1,8 @@
 param(
 	[ValidateSet('msvc-debug', 'msvc-release', 'mingw-debug', 'mingw-release')]
 	[string]$Preset = 'msvc-debug',
-	[switch]$Source
+	[switch]$Source,
+	[switch]$BuildOnly
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -51,9 +52,13 @@ try
 	if ($LASTEXITCODE -ne 0) { throw 'Consumer configuration failed.' }
 	& cmake --build $consumerBuild --parallel 4
 	if ($LASTEXITCODE -ne 0) { throw 'Consumer build failed.' }
-	& (Join-Path $projectRoot "$consumerBuild/YukiriConsumer.exe")
-	if ($LASTEXITCODE -ne 0) { throw 'Consumer execution failed.' }
-	Write-Output "$Preset $mode consumption passed."
+	if (!$BuildOnly)
+	{
+		& (Join-Path $projectRoot "$consumerBuild/YukiriConsumer.exe")
+		if ($LASTEXITCODE -ne 0) { throw 'Consumer execution failed.' }
+	}
+	$checks = if ($BuildOnly) { 'configure/link' } else { 'configure/link/run' }
+	Write-Output "$Preset $mode consumption passed ($checks)."
 }
 finally
 {
