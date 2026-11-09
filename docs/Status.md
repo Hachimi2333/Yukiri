@@ -43,3 +43,5 @@ Linux、完整双向段落、彩色 Emoji 及更多扩展控件属于 [后续规
 仓库入口使用默认英文 README.md 与中文 README.zh-CN.md，提供一致的功能、构建、集成及状态说明；安装文档保留相同目录关系，便于离线阅读。
 
 0.2 无障碍阶段实现 AccessibilityInfo、Windows UI Automation、文字范围与按需虚拟数据节点，原生和自绘窗口共用语义；应用线程初始化为 COM STA。直接原生 COM 接口与语义测试不创建窗口。Narrator、屏幕坐标及实际事件交付尚待用户验收，详见 Accessibility 与 ManualTesting。
+
+0.2 Demo 已增加 Desktop 基础控件页、文档编辑和共享数据管理窗口，支持 --editor / --data 直接进入。文件读写在后台完成，保存快照与未保存关闭确认联动；数据加载限制一批在途工作，取消后丢弃迟到批次。详见 Demo，完整桌面流程待用户验收。

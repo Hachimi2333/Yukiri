@@ -12,7 +12,7 @@
 - [x] 编辑：TextArea、查找替换、密码模式、NumberBox 及现有控件交互补齐（CPU / 编译验证；真实 IME、剪贴板与视觉待用户验收）。
 - [x] 数据：ItemModel / StandardItemModel / SelectionModel、虚拟化列表 / 树 / 表格（CPU / 编译验证；真实交互待用户验收）。
 - [x] 无障碍：Windows UI Automation、文字范围与虚拟化数据语义（CPU / 原生 COM 接口验证；Narrator 待用户验收）。
-- [ ] Demo：文件编辑闭环、共享数据管理、后台加载进度。
+- [x] Demo：文件编辑闭环、共享数据管理、后台加载进度（编译 / 文件 CPU 验证；窗口流程待用户验收）。
 - [ ] 交付：四套配置、安装消费、双语说明及用户验收清单。
 
 ## 验证边界

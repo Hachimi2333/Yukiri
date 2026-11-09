@@ -2,6 +2,9 @@
 #include "Card.hpp"
 #include "CanvasSample.hpp"
 #include "ResponsivePanel.hpp"
+#include "DocumentWorkspace.hpp"
+#include "DataWorkspace.hpp"
+#include "FoundationSamples.hpp"
 #include <format>
 
 namespace YukiriDemo
@@ -55,6 +58,20 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	auto& newWindow = actions.AddChild<Button>("New window / 新窗口");
 	auto& nativeWindow = actions.AddChild<Button>("Native title bar / 原生标题栏");
 	auto& reset = actions.AddChild<Button>("Reset controls / 重置");
+	auto& workflows = root->AddChild<WrapPanel>();
+	workflows.SetSpacing(8, 8);
+	auto& document = workflows.AddChild<Button>("Document editor / 文档编辑");
+	auto& data = workflows.AddChild<Button>("Data manager / 数据管理");
+	Keep(document.m_Clicked.Connect([this]
+	{
+		auto result = OpenDocument(m_Application, m_Window.GetConfig().m_Decoration, m_Window.GetConfig().m_Theme);
+		if (!result) m_Status->SetText(result.error().m_Message);
+	}));
+	Keep(data.m_Clicked.Connect([this]
+	{
+		auto result = OpenData(m_Application, m_Window.GetConfig().m_Decoration, m_Window.GetConfig().m_Theme);
+		if (!result) m_Status->SetText(result.error().m_Message);
+	}));
 	m_Tabs = &root->AddChild<TabView>();
 	auto controls = std::make_unique<ResponsivePanel>(340.0f, 2, 16.0f);
 	auto& actionCard = controls->AddChild<Card>();
@@ -128,6 +145,7 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	canvasCard.AddChild<CanvasSample>();
 	Heading(canvasCard, "Clip stacks, linear blending, and sRGB", 12);
 	m_Tabs->AddTab("Text & Canvas / 文字与绘制", std::move(textPage));
+	m_Tabs->AddTab("Desktop / 桌面基础", MakeFoundationSamples());
 	auto about = std::make_unique<Card>();
 	Heading(*about, "Yukiri 0.1.0", 24);
 	auto& description = Heading(*about, "C++23 · Retained widgets · Vulkan 1.4\nSDL3 · FreeType · HarfBuzz\n\nWindows preview. Linux support is planned.\nUse Tab / Shift+Tab to navigate and arrow keys to adjust controls.", 14);

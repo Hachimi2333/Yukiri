@@ -30,7 +30,7 @@ Yukiri is a retained-mode GUI framework distributed as a static library. It comb
 
 Yukiri is at an early stage; public APIs may change. Full bidirectional paragraphs, multiline editing, accessibility integration, and additional controls are planned. See [project status](docs/Status.md), [validation records](docs/Validation.md), and the [roadmap](FUTURE.md) for implemented and tested boundaries.
 
-The 0.2 development branch adds UI dispatch, timers, commands, cancelable close requests, raster/SVG images, font selection, adaptive layouts, menus, toolbars, tooltips, themed modal dialogs, asynchronous native file dialogs, multiline editing, find/replace, password fields, numeric input, and shared models with virtualized list/tree/table views, and Windows UI Automation providers. New capabilities currently have compiler and CPU coverage; GPU and desktop acceptance are tracked separately in the [milestone checklist](docs/DesktopFoundations.md).
+The 0.2 development branch adds UI dispatch, timers, commands, cancelable close requests, raster/SVG images, font selection, adaptive layouts, menus, toolbars, tooltips, themed modal dialogs, asynchronous native file dialogs, multiline editing, find/replace, password fields, numeric input, and shared models with virtualized list/tree/table views, Windows UI Automation providers, and document/data workflow demos. New capabilities currently have compiler and CPU coverage; GPU and desktop acceptance are tracked separately in the [milestone checklist](docs/DesktopFoundations.md).
 
 ## Requirements
 

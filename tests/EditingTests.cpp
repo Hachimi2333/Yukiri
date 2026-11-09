@@ -231,3 +231,25 @@ TEST_CASE("Radio groups, closed combos, slider steps, and indeterminate motion f
 	Yukiri::ProgressBar progress;
 	progress.SetIndeterminate(true); REQUIRE(progress.IsIndeterminate());
 }
+
+TEST_CASE("Read-only editors reject late text input after composition is canceled", "[text][readonly]")
+{
+	for (const bool multiline : {false, true})
+	{
+		std::unique_ptr<Yukiri::TextBox> editor = multiline ? std::make_unique<Yukiri::TextArea>("Original / 原文") : std::make_unique<Yukiri::TextBox>("Original / 原文");
+		unsigned changed = 0;
+		auto connection = editor->m_TextChanged.Connect([&](std::string) { ++changed; });
+		editor->OnTextEditing("nihao", 2, 1);
+		REQUIRE(editor->IsComposing());
+		editor->SetReadOnly(true);
+		REQUIRE_FALSE(editor->IsComposing());
+		editor->OnTextInput("你好");
+		editor->OnTextEditing("late", 0, 0);
+		REQUIRE(editor->GetText() == "Original / 原文");
+		REQUIRE_FALSE(editor->IsComposing());
+		REQUIRE(changed == 0);
+		editor->SetReadOnly(false);
+		editor->OnTextInput("Accepted / 可编辑");
+		REQUIRE(changed == 1);
+	}
+}

@@ -7,6 +7,7 @@
 | [Status](Status.md) | 当前交付进度与已知边界 |
 | [DesktopFoundations](DesktopFoundations.md) | 0.2 桌面基础里程碑及实际进度 |
 | [ManualTesting](ManualTesting.md) | 用户自行启动的桌面验收清单 |
+| [Demo](Demo.md) | 文档编辑、共享数据和后台任务示例 |
 | [Building](Building.md) | 工具链、构建、测试、Demo 与集成 |
 | [Architecture](Architecture.md) | 分层、所有权、调度和平台边界 |
 | [Dependencies](Dependencies.md) | 固定依赖版本、构建选项与许可证 |

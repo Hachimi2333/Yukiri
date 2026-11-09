@@ -44,7 +44,11 @@ void TextBox::SetReadOnly(bool readOnly)
 	Dispatch([&]
 	{
 		m_Impl->m_ReadOnly = readOnly;
-		if (readOnly) CancelComposition();
+		if (readOnly)
+		{
+			CancelComposition();
+			if (HasFocus() && GetWindow()) GetWindow()->StopTextInput();
+		}
 		else if (HasFocus() && GetWindow()) GetWindow()->StartTextInput(GetCaretBounds());
 		InvalidatePaint();
 		m_EditStateChanged.Emit();
@@ -270,6 +274,7 @@ void TextBox::OnTextEditing(std::string_view text, int start, int length)
 }
 void TextBox::OnTextInput(std::string_view text)
 {
+	if (IsReadOnly()) return;
 	if (IsReadOnly()) return;
 	const bool composition = IsComposing();
 	m_Impl->m_Composition.Clear();

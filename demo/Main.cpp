@@ -1,5 +1,7 @@
 #include "Gallery.hpp"
 #include "IconValidation.hpp"
+#include "DocumentWorkspace.hpp"
+#include "DataWorkspace.hpp"
 #include <iostream>
 #include <string_view>
 #include <thread>
@@ -10,16 +12,29 @@ int main(int argc, char** argv)
 	bool smoke = false;
 	auto decoration = Yukiri::WindowDecoration::Custom;
 	bool idle = false;
+	bool editor = false;
+	bool data = false;
 	for (int i = 1; i < argc; ++i)
 	{
 		if (std::string_view(argv[i]) == "--smoke") smoke = true;
 		if (std::string_view(argv[i]) == "--custom") decoration = Yukiri::WindowDecoration::Custom;
 		if (std::string_view(argv[i]) == "--native") decoration = Yukiri::WindowDecoration::Native;
 		if (std::string_view(argv[i]) == "--idle-smoke") idle = true;
+		if (std::string_view(argv[i]) == "--editor") editor = true;
+		if (std::string_view(argv[i]) == "--data") data = true;
 	}
 	auto application = Yukiri::Application::Create({"Yukiri Demo", true});
 	if (!application) { std::cerr << application.error().m_Message << '\n'; return 1; }
 	auto& app = **application;
+	if (!smoke && !idle && (editor || data))
+	{
+		auto opened = editor ? YukiriDemo::OpenDocument(app, decoration, Yukiri::ThemeMode::System) :
+			YukiriDemo::OpenData(app, decoration, Yukiri::ThemeMode::System);
+		if (!opened) { std::cerr << opened.error().m_Message << '\n'; return 2; }
+		auto run = app.Run();
+		if (!run) { std::cerr << run.error().m_Message << '\n'; return 8; }
+		return app.GetValidationErrorCount() ? 9 : 0;
+	}
 	auto mainWindow = YukiriDemo::OpenGallery(app, decoration,
 		Yukiri::ThemeMode::System, !smoke && !idle);
 	if (!mainWindow) { std::cerr << mainWindow.error().m_Message << '\n'; return 2; }
