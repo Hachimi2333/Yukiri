@@ -18,15 +18,16 @@ Rect Canvas::ToGlobal(Rect rectangle) const
 	rectangle.m_Y += m_State.m_Offset.m_Y;
 	return rectangle;
 }
+Color Canvas::ApplyOpacity(Color color) const { return color.WithAlpha(color.m_A * m_State.m_Opacity); }
 
 void Canvas::FillRectangle(Rect rectangle, Color color, float radius)
 {
-	m_List.Add(ToGlobal(rectangle), color, m_State.m_Clips.back(), radius);
+	m_List.Add(ToGlobal(rectangle), ApplyOpacity(color), m_State.m_Clips.back(), radius);
 }
 
 void Canvas::StrokeRectangle(Rect rectangle, Color color, float width, float radius)
 {
-	m_List.Add(ToGlobal(rectangle), color, m_State.m_Clips.back(), radius, width);
+	m_List.Add(ToGlobal(rectangle), ApplyOpacity(color), m_State.m_Clips.back(), radius, width);
 }
 
 void Canvas::DrawLine(Point start, Point end, Color color, float width)
@@ -34,13 +35,13 @@ void Canvas::DrawLine(Point start, Point end, Color color, float width)
 	const auto distance = std::hypot(end.m_X - start.m_X, end.m_Y - start.m_Y);
 	const Rect rectangle{(start.m_X + end.m_X - distance - width) * 0.5f,
 		(start.m_Y + end.m_Y - width) * 0.5f, distance + width, width};
-	m_List.Add(ToGlobal(rectangle), color, m_State.m_Clips.back(), width * 0.5f, 0, 0, {0, 0, 1, 1}, Detail::DrawKind::Shape,
+	m_List.Add(ToGlobal(rectangle), ApplyOpacity(color), m_State.m_Clips.back(), width * 0.5f, 0, 0, {0, 0, 1, 1}, Detail::DrawKind::Shape,
 		std::atan2(end.m_Y - start.m_Y, end.m_X - start.m_X));
 }
 
 void Canvas::DrawImage(Rect rectangle, std::uint32_t texture)
 {
-	m_List.Add(ToGlobal(rectangle), Color::FromHex(0xFFFFFF), m_State.m_Clips.back(), 0, 0, texture,
+	m_List.Add(ToGlobal(rectangle), ApplyOpacity(Color::FromHex(0xFFFFFF)), m_State.m_Clips.back(), 0, 0, texture,
 		{0, 0, 1, 1}, Detail::DrawKind::Image);
 }
 void Canvas::DrawImage(const Image& image, Rect rectangle, float opacity)
@@ -56,7 +57,7 @@ void Canvas::DrawImage(const Image& image, Rect rectangle, float opacity)
 	}
 	auto texture = m_Text->GetDevice()->GetImageTexture(image, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height));
 	if (!texture) { if (!m_List.m_Error) m_List.m_Error = texture.error(); return; }
-	m_List.Add(ToGlobal(rectangle), Color::FromHex(0xFFFFFF).WithAlpha(std::clamp(opacity, 0.0f, 1.0f)),
+	m_List.Add(ToGlobal(rectangle), ApplyOpacity(Color::FromHex(0xFFFFFF).WithAlpha(std::clamp(opacity, 0.0f, 1.0f))),
 		m_State.m_Clips.back(), 0, 0, *texture, {0, 0, 1, 1}, Detail::DrawKind::Image);
 }
 
@@ -69,12 +70,14 @@ void Canvas::Restore()
 }
 void Canvas::SetOffset(Point offset) { m_State.m_Offset = offset; }
 void Canvas::SetFont(const Font& font) { m_State.m_Font = font; }
+void Canvas::SetOpacity(float opacity) { m_State.m_Opacity = std::isfinite(opacity) ? std::clamp(opacity, 0.0f, 1.0f) : 0; }
+float Canvas::GetOpacity() const noexcept { return m_State.m_Opacity; }
 void Canvas::PushClip(Rect rectangle) { m_State.m_Clips.push_back(m_State.m_Clips.back().Intersect(ToGlobal(rectangle))); }
 void Canvas::PopClip() { assert(m_State.m_Clips.size() > 1); m_State.m_Clips.pop_back(); }
 void Canvas::DrawText(std::string_view text, Point position, Color color, float fontSize)
 {
 	if (!m_Text || text.empty() || m_State.m_Clips.back().Empty()) return;
-	auto result = m_Text->Draw(m_List, text, position + m_State.m_Offset, color, fontSize, m_Scale, m_State.m_Clips.back(), m_State.m_Font);
+	auto result = m_Text->Draw(m_List, text, position + m_State.m_Offset, ApplyOpacity(color), fontSize, m_Scale, m_State.m_Clips.back(), m_State.m_Font);
 	if (!result && !m_List.m_Error) m_List.m_Error = result.error();
 }
 Size Canvas::MeasureText(std::string_view text, float fontSize) const

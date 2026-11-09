@@ -4,6 +4,8 @@
 
 0.2 通用桌面基础里程碑正在独立分支开发，范围和实际进度见 [实施清单](DesktopFoundations.md)。不将规划中的新增能力计入当前完整支持范围。
 
+0.2 已加入层级弹出内容、MenuBar / ContextMenu、ToolBar / StatusBar / Separator / ToolTip，以及所属窗口内 Dialog / MessageDialog 和独立 STA 的可取消 FileDialog。弹出内容保留退出视觉时立即退出输入，模态限制焦点及快捷键范围。真实系统对话框、菜单视觉和桌面交互尚待用户验收。
+
 | 阶段 | 交付状态 |
 |---|---|
 | 开发规范与文档 | AGENTS.md、FUTURE.md 与 docs 已建立并持续维护 |

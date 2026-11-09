@@ -82,6 +82,10 @@ public:
 		for (const auto& slot : m_Slots) slot->m_Connected = false;
 		m_Slots.clear();
 	}
+	[[nodiscard]] bool HasConnections() const noexcept
+	{
+		return std::ranges::any_of(m_Slots, [](const auto& slot) { return slot->m_Connected; });
+	}
 
 private:
 	std::vector<std::shared_ptr<Slot>> m_Slots;

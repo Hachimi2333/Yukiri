@@ -10,6 +10,7 @@
 #include "FrameStatistics.hpp"
 #include "CloseState.hpp"
 #include "WindowEvents.hpp"
+#include "FileDialogTask.hpp"
 
 namespace Yukiri
 {
@@ -21,6 +22,8 @@ struct Window::Impl
 	Detail::CloseState m_Close;
 	Window* m_ParentWindow = nullptr;
 	std::vector<std::filesystem::path> m_DroppedFiles;
+	Dispatcher m_Dispatcher;
+	std::unique_ptr<Detail::FileDialogTask> m_FileDialog;
 	bool m_Dirty = true;
 	std::unique_ptr<Detail::WindowRenderer> m_Renderer;
 	Detail::WidgetTree m_Tree;

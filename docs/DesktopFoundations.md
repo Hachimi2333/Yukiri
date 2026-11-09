@@ -8,7 +8,7 @@
 - [x] 图片：SDL_image / LunaSVG、公共图片、透明度与 GPU 资源回收（CPU / 编译验证；GPU 待用户验收）。
 - [x] 字体：字体族、字重、斜体与对应回退 / 缓存（CPU / 编译验证，真实视觉待用户验收）。
 - [x] 布局：Border / WrapPanel / SplitPanel、约束换行与文字对齐（CPU / 编译验证）。
-- [ ] 应用交互：分层弹出内容、菜单、工具栏、提示、模态及原生文件对话框。
+- [x] 应用交互：分层弹出内容、菜单、工具栏、提示、模态及原生文件对话框（CPU / 编译验证；系统界面与真实交互待用户验收）。
 - [ ] 编辑：TextArea、查找替换、密码模式、NumberBox 及现有控件交互补齐。
 - [ ] 数据：ItemModel / StandardItemModel / SelectionModel、虚拟化列表 / 树 / 表格。
 - [ ] 无障碍：Windows UI Automation、文字范围与虚拟化数据语义。

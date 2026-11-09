@@ -3,24 +3,26 @@
 #include <Yukiri/Core/Error.hpp>
 #include <Yukiri/Core/Geometry.hpp>
 #include <Yukiri/Core/Signal.hpp>
+#include <Yukiri/Core/Dispatcher.hpp>
 #include <Yukiri/Platform/Config.hpp>
 #include <Yukiri/Styling/Theme.hpp>
+#include <Yukiri/UI/CloseRequestEvent.hpp>
 
 #include <memory>
 #include <string_view>
 #include <filesystem>
 #include <vector>
+#include <functional>
 
 namespace Yukiri
 {
 class Application;
 class Widget;
 class Command;
-
-struct CloseRequestEvent
-{
-	bool m_Cancel = false;
-};
+class Dialog;
+class ContextMenu;
+class ToolTip;
+class FileDialog;
 
 class Window final
 {
@@ -37,6 +39,8 @@ public:
 	[[nodiscard]] Window* GetOwner() const noexcept;
 	void AddCommand(std::shared_ptr<Command> command);
 	void RemoveCommand(const Command& command);
+	[[nodiscard]] Connection ConnectCommand(std::shared_ptr<Command> command);
+	[[nodiscard]] Dispatcher GetDispatcher() const;
 	void Invalidate();
 	void SetContent(std::unique_ptr<Widget> content);
 	[[nodiscard]] Widget* GetContent() const noexcept;
@@ -67,6 +71,12 @@ public:
 
 private:
 	friend class Application;
+	friend class Dialog;
+	friend class ContextMenu;
+	friend class ToolTip;
+	friend class FileDialog;
+	[[nodiscard]] Result<Widget*> OpenPopup(Widget* owner, std::unique_ptr<Widget> content, Rect anchor,
+		bool modal, bool beside, bool interactive, std::function<void()> canceled = {});
 	struct Impl;
 	explicit Window(std::unique_ptr<Impl> impl);
 	[[nodiscard]] Result<void> Update(bool paced);

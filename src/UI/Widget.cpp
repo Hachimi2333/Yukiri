@@ -1,6 +1,8 @@
 #include <Yukiri/UI/Widget.hpp>
 #include <Yukiri/Render/Canvas.hpp>
 #include "WidgetTree.hpp"
+#include "Core/Retire.hpp"
+#include "Text/Unicode.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -25,11 +27,16 @@ void Widget::Attach(Detail::WidgetTree* tree)
 
 Widget& Widget::AddChild(std::unique_ptr<Widget> child)
 {
+	return InsertChild(m_Children.size(), std::move(child));
+}
+Widget& Widget::InsertChild(std::size_t index, std::unique_ptr<Widget> child)
+{
 	assert(child && !child->m_Parent && child.get() != this);
+	assert(index <= m_Children.size());
 	child->m_Parent = this;
 	child->Attach(m_Tree);
 	auto& observer = *child;
-	m_Children.push_back(std::move(child));
+	m_Children.insert(m_Children.begin() + static_cast<std::ptrdiff_t>(index), std::move(child));
 	InvalidateLayout();
 	return observer;
 }
@@ -39,7 +46,7 @@ void Widget::RemoveChild(Widget& child)
 	auto remove = [this, childPointer = &child, lifetime = std::weak_ptr<int>(m_Lifetime)]
 	{
 		if (lifetime.expired()) return;
-		std::erase_if(m_Children, [childPointer](const auto& owned) { return owned.get() == childPointer; });
+		Detail::RetireMatching(m_Children, [childPointer](const auto& owned) { return &owned == childPointer; });
 		InvalidateLayout();
 	};
 	if (m_Tree) m_Tree->Defer(std::move(remove)); else remove();
@@ -52,9 +59,9 @@ void Widget::ClearChildren()
 	auto clear = [this, children = std::move(children), lifetime = std::weak_ptr<int>(m_Lifetime)]
 	{
 		if (lifetime.expired()) return;
-		std::erase_if(m_Children, [&](const auto& owned)
+		Detail::RetireMatching(m_Children, [&](const auto& owned)
 		{
-			return std::ranges::any_of(children, [&](const auto& entry) { return !entry.second.expired() && entry.first == owned.get(); });
+			return std::ranges::any_of(children, [&](const auto& entry) { return !entry.second.expired() && entry.first == &owned; });
 		});
 		InvalidateLayout();
 	};
@@ -100,6 +107,18 @@ void Widget::SetFocusable(bool focusable)
 	if (!focusable && HasFocus()) m_Tree->SetFocus(nullptr);
 }
 void Widget::SetCursor(Cursor cursor) { m_Cursor = cursor; }
+void Widget::SetToolTip(std::string text)
+{
+	m_ToolTip = Detail::SanitizeUtf8(text);
+	if (m_Tree && Detail::WidgetTree::Within(m_Tree->m_Hover, this)) m_Tree->UpdateToolTip();
+}
+std::string_view Widget::GetToolTip() const noexcept { return m_ToolTip; }
+void Widget::SetTabStop(bool tabStop) { m_TabStop = tabStop; }
+void Widget::SetHitTestVisible(bool visible)
+{
+	m_HitTestVisible = visible;
+	if (!visible && m_Tree) m_Tree->Forget(this);
+}
 void Widget::SetStyle(WidgetStyle style) { m_Style = std::move(style); InvalidateLayout(); }
 void Widget::SetThemeOverride(std::optional<Theme> theme) { m_ThemeOverride = std::move(theme); InvalidateLayout(); }
 const WidgetStyle& Widget::GetStyle() const noexcept { return m_Style; }
@@ -131,6 +150,7 @@ Size Widget::GetActualSize() const noexcept { return {m_Bounds.m_Width, m_Bounds
 bool Widget::IsVisible() const noexcept { return m_Visible; }
 bool Widget::IsEnabled() const noexcept { return m_Enabled && (!m_Parent || m_Parent->IsEnabled()); }
 bool Widget::IsFocusable() const noexcept { return m_Focusable; }
+bool Widget::IsTabStop() const noexcept { return m_TabStop; }
 bool Widget::IsHovered() const noexcept { return m_Hovered; }
 bool Widget::HasFocus() const noexcept { return m_Tree && m_Tree->m_Focus == this; }
 bool Widget::IsFocusVisible() const noexcept { return HasFocus() && m_Tree->m_FocusVisible; }
@@ -147,8 +167,8 @@ void Widget::Measure(Size available)
 	if (!m_Visible) { m_Desired = {}; return; }
 	available.m_Width = std::max(0.0f, available.m_Width - m_Margin.Horizontal());
 	available.m_Height = std::max(0.0f, available.m_Height - m_Margin.Vertical());
-	const auto inner = OnMeasure({std::max(0.0f, m_Width.value_or(available.m_Width) - m_Padding.Horizontal()),
-		std::max(0.0f, m_Height.value_or(available.m_Height) - m_Padding.Vertical())});
+	const auto inner = OnMeasure({std::max(0.0f, std::clamp(m_Width.value_or(available.m_Width), m_Min.m_Width, m_Max.m_Width) - m_Padding.Horizontal()),
+		std::max(0.0f, std::clamp(m_Height.value_or(available.m_Height), m_Min.m_Height, m_Max.m_Height) - m_Padding.Vertical())});
 	m_Desired = {std::clamp(m_Width.value_or(inner.m_Width + m_Padding.Horizontal()), m_Min.m_Width, m_Max.m_Width) + m_Margin.Horizontal(),
 		std::clamp(m_Height.value_or(inner.m_Height + m_Padding.Vertical()), m_Min.m_Height, m_Max.m_Height) + m_Margin.Vertical()};
 }
@@ -216,7 +236,7 @@ void Widget::Render(Canvas& canvas)
 
 Widget* Widget::HitTest(Point point)
 {
-	if (!m_Visible || !IsEnabled() || !m_Bounds.Contains(point)) return nullptr;
+	if (!m_Visible || !m_HitTestVisible || !IsEnabled() || !m_Bounds.Contains(point)) return nullptr;
 	if (GetChildrenClip().Contains(point))
 		for (auto child = m_Children.rbegin(); child != m_Children.rend(); ++child)
 			if (auto* target = (*child)->HitTest(point)) return target;
@@ -269,12 +289,21 @@ void Widget::OnPointerEnter() {}
 void Widget::OnPointerLeave() {}
 void Widget::OnPointerCaptureLost() {}
 void Widget::OnWheel(PointerEvent&) {}
+void Widget::OnContextMenu(PointerEvent& event)
+{
+	if (!m_ContextMenuRequested.HasConnections()) return;
+	event.m_Handled = true;
+	m_ContextMenuRequested.Emit(ToLocal(event.m_Position));
+}
 void Widget::OnKeyDown(KeyEvent&) {}
+void Widget::OnPreviewKeyDown(KeyEvent&) {}
 void Widget::OnKeyUp(KeyEvent&) {}
 void Widget::OnTextInput(std::string_view) {}
 void Widget::OnTextEditing(std::string_view, int, int) {}
 void Widget::OnFocusChanged(bool) {}
 bool Widget::AcceptsTextInput() const noexcept { return false; }
+bool Widget::AcceptsReturn() const noexcept { return false; }
+bool Widget::IsComposing() const noexcept { return false; }
 void Widget::BringIntoView()
 {
 	Rect rectangle = GetBounds();
@@ -289,6 +318,8 @@ void Widget::BringFocusIntoView()
 	for (auto* parent = m_Parent; parent; parent = parent->m_Parent) parent->OnBringIntoView(rectangle);
 }
 std::weak_ptr<int> Widget::ObserveLifetime() const noexcept { return m_Lifetime; }
+std::weak_ptr<int> Widget::ObserveLifetime(const Widget& widget) noexcept { return widget.m_Lifetime; }
+void Widget::Dispatch(std::function<void()> action) { if (m_Tree) m_Tree->Invoke(std::move(action)); else action(); }
 float Widget::GetHoverAmount() const noexcept { return m_HoverTransition.GetValue(); }
 bool Widget::CanAnimate() const noexcept
 {
@@ -365,7 +396,12 @@ void Widget::ShowPopup(std::function<void(Canvas&, float)> paint, std::function<
 {
 	if (m_Tree) m_Tree->SetPopup(this, std::move(paint), std::move(pointer), std::move(key));
 }
-void Widget::ClosePopup(bool immediate) { if (m_Tree && m_Tree->OwnsPopup(this)) m_Tree->ClosePopup(immediate); }
+void Widget::ClosePopup(bool immediate) { if (m_Tree) m_Tree->ClosePopupFor(this, immediate); }
+Result<Widget*> Widget::ShowPopupContent(std::unique_ptr<Widget> content, Rect anchor, bool beside, bool interactive)
+{
+	if (!m_Tree) return std::unexpected(Error{ErrorCode::InvalidArgument, "Popup owners must be attached to a window tree."});
+	return m_Tree->OpenPopup(this, std::move(content), anchor, false, beside, interactive);
+}
 bool Widget::IsPopupOpen() const noexcept { return m_Tree && m_Tree->HasPopup(this); }
 std::vector<Widget*> Widget::Children() const
 {

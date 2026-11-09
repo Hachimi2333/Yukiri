@@ -28,6 +28,8 @@ public:
 	void Restore();
 	void SetOffset(Point offset);
 	void SetFont(const Font& font);
+	void SetOpacity(float opacity);
+	[[nodiscard]] float GetOpacity() const noexcept;
 	void PushClip(Rect rectangle);
 	void PopClip();
 
@@ -36,9 +38,10 @@ private:
 	friend class Widget;
 	friend class Detail::WindowChrome;
 	void DrawImage(Rect rectangle, std::uint32_t texture);
-	struct State { Point m_Offset; std::vector<Rect> m_Clips; Font m_Font; };
+	struct State { Point m_Offset; std::vector<Rect> m_Clips; Font m_Font; float m_Opacity = 1; };
 	Canvas(Detail::DrawList& list, Size size, Detail::TextEngine* text = nullptr, float scale = 1);
 	[[nodiscard]] Rect ToGlobal(Rect rectangle) const;
+	[[nodiscard]] Color ApplyOpacity(Color color) const;
 	Detail::DrawList& m_List;
 	Detail::TextEngine* m_Text;
 	float m_Scale;

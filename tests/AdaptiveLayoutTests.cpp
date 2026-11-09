@@ -131,3 +131,19 @@ TEST_CASE("Split divider hit testing follows scrolling without another measure p
 	REQUIRE(tree.m_Capture == &split);
 	tree.CancelPointer();
 }
+
+TEST_CASE("Maximum widget width constrains child wrapping before measurement", "[layout]")
+{
+	Yukiri::Detail::WidgetTree tree;
+	tree.m_MeasureText = [](std::string_view text, float, const Yukiri::Font&) { return Monospace(text); };
+	auto border = std::make_unique<Yukiri::Border>();
+	border->SetPadding(Yukiri::Insets(0));
+	border->SetMaxSize({50, 1000});
+	auto label = std::make_unique<Yukiri::Label>("abcdefghijklmno");
+	auto* text = label.get();
+	label->SetWrap(true);
+	border->SetContent(std::move(label));
+	tree.SetRoot(std::move(border));
+	tree.Layout({500, 200});
+	REQUIRE(text->GetDesiredSize().m_Height == Approx(60));
+}

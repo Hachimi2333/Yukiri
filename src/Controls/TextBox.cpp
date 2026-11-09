@@ -51,6 +51,7 @@ void TextBox::SetReadOnly(bool readOnly)
 }
 void TextBox::SelectAll() { if (m_Impl->m_Composition.IsActive()) CancelComposition(); m_Impl->m_Editor.SelectAll(); RefreshCaret(); }
 bool TextBox::AcceptsTextInput() const noexcept { return !m_Impl->m_ReadOnly; }
+bool TextBox::IsComposing() const noexcept { return m_Impl->m_Composition.IsActive(); }
 Size TextBox::OnMeasure(Size) { return {220, std::max(GetTheme().m_ControlHeight, GetFontSize() * 1.5f + 12)}; }
 void TextBox::RefreshCaret()
 {

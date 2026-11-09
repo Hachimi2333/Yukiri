@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <string>
 #include <vector>
 
 namespace Yukiri
@@ -29,6 +30,7 @@ public:
 	Widget(const Widget&) = delete;
 	Widget& operator=(const Widget&) = delete;
 	Widget& AddChild(std::unique_ptr<Widget> child);
+	Widget& InsertChild(std::size_t index, std::unique_ptr<Widget> child);
 	template<typename T, typename... Args>
 	T& AddChild(Args&&... args)
 	{
@@ -51,7 +53,11 @@ public:
 	void SetVisible(bool visible);
 	void SetEnabled(bool enabled);
 	void SetFocusable(bool focusable);
+	void SetTabStop(bool tabStop);
+	void SetHitTestVisible(bool visible);
 	void SetCursor(Cursor cursor);
+	void SetToolTip(std::string text);
+	[[nodiscard]] std::string_view GetToolTip() const noexcept;
 	void SetStyle(WidgetStyle style);
 	void SetThemeOverride(std::optional<Theme> theme);
 	[[nodiscard]] const WidgetStyle& GetStyle() const noexcept;
@@ -68,6 +74,7 @@ public:
 	[[nodiscard]] bool IsVisible() const noexcept;
 	[[nodiscard]] bool IsEnabled() const noexcept;
 	[[nodiscard]] bool IsFocusable() const noexcept;
+	[[nodiscard]] bool IsTabStop() const noexcept;
 	[[nodiscard]] bool IsHovered() const noexcept;
 	[[nodiscard]] bool HasFocus() const noexcept;
 	[[nodiscard]] bool IsFocusVisible() const noexcept;
@@ -96,12 +103,17 @@ public:
 	virtual void OnPointerLeave();
 	virtual void OnPointerCaptureLost();
 	virtual void OnWheel(PointerEvent& event);
+	virtual void OnContextMenu(PointerEvent& event);
 	virtual void OnKeyDown(KeyEvent& event);
+	virtual void OnPreviewKeyDown(KeyEvent& event);
 	virtual void OnKeyUp(KeyEvent& event);
 	virtual void OnTextInput(std::string_view text);
 	virtual void OnTextEditing(std::string_view text, int start, int length);
 	virtual void OnFocusChanged(bool focused);
 	[[nodiscard]] virtual bool AcceptsTextInput() const noexcept;
+	[[nodiscard]] virtual bool AcceptsReturn() const noexcept;
+	[[nodiscard]] virtual bool IsComposing() const noexcept;
+	Signal<Point> m_ContextMenuRequested;
 
 protected:
 	virtual bool OnAnimate(std::chrono::nanoseconds delta);
@@ -119,6 +131,8 @@ protected:
 	void PaintFocus(Canvas& canvas) const;
 	[[nodiscard]] Color InteractiveColor(Color resting, Color hovered, Color pressed, bool isPressed) noexcept;
 	[[nodiscard]] std::weak_ptr<int> ObserveLifetime() const noexcept;
+	[[nodiscard]] static std::weak_ptr<int> ObserveLifetime(const Widget& widget) noexcept;
+	void Dispatch(std::function<void()> action);
 	[[nodiscard]] float GetHoverAmount() const noexcept;
 	[[nodiscard]] std::vector<Widget*> Children() const;
 	void ShowPopup(std::function<void(Canvas&)> paint, std::function<bool(PointerEvent&)> pointer,
@@ -126,6 +140,7 @@ protected:
 	void ShowPopup(std::function<void(Canvas&, float)> paint, std::function<bool(PointerEvent&)> pointer,
 		std::function<bool(KeyEvent&)> key);
 	void ClosePopup(bool immediate = false);
+	[[nodiscard]] Result<Widget*> ShowPopupContent(std::unique_ptr<Widget> content, Rect anchor, bool beside = false, bool interactive = true);
 	[[nodiscard]] bool IsPopupOpen() const noexcept;
 
 private:
@@ -156,6 +171,8 @@ private:
 	bool m_Visible = true;
 	bool m_Enabled = true;
 	bool m_Focusable = false;
+	bool m_TabStop = true;
+	bool m_HitTestVisible = true;
 	bool m_Hovered = false;
 	Detail::Transition m_HoverTransition;
 	Detail::Transition m_PressTransition;
@@ -163,6 +180,7 @@ private:
 	bool m_HasArranged = false;
 	std::chrono::steady_clock::time_point m_LastAnimationTick{};
 	Cursor m_Cursor = Cursor::Arrow;
+	std::string m_ToolTip;
 	WidgetStyle m_Style;
 	std::optional<Theme> m_ThemeOverride;
 };

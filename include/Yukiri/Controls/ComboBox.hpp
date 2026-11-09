@@ -16,6 +16,7 @@ public:
 	[[nodiscard]] std::string_view GetSelectedText() const noexcept;
 	void OnPointerDown(PointerEvent& event) override;
 	void OnKeyDown(KeyEvent& event) override;
+	[[nodiscard]] bool AcceptsReturn() const noexcept override { return true; }
 	Signal<int> m_SelectionChanged;
 protected:
 	bool OnAnimate(std::chrono::nanoseconds delta) override;

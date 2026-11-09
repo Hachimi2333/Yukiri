@@ -16,6 +16,7 @@ public:
 	void SetReadOnly(bool readOnly);
 	void SelectAll();
 	[[nodiscard]] bool AcceptsTextInput() const noexcept override;
+	[[nodiscard]] bool IsComposing() const noexcept override;
 	void OnPointerDown(PointerEvent& event) override;
 	void OnPointerUp(PointerEvent& event) override;
 	void OnPointerCaptureLost() override;

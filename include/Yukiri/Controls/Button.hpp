@@ -24,6 +24,7 @@ public:
 	void OnKeyUp(KeyEvent& event) override;
 	void OnPointerCaptureLost() override;
 	void OnFocusChanged(bool focused) override;
+	[[nodiscard]] bool AcceptsReturn() const noexcept override { return true; }
 	Signal<> m_Clicked;
 protected:
 	Size OnMeasure(Size available) override;

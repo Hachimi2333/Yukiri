@@ -2,6 +2,7 @@
 #include <Yukiri/Platform/Window.hpp>
 #include "WindowState.hpp"
 #include "Core/DispatchQueue.hpp"
+#include "Core/Retire.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -27,6 +28,7 @@ struct Application::Impl
 	std::unique_ptr<Detail::TextEngine> m_Text;
 	std::thread::id m_Thread = std::this_thread::get_id();
 	bool m_Polling = false;
+	bool m_ShuttingDown = false;
 	std::unique_ptr<Detail::DispatchQueue> m_Dispatch;
 	std::vector<std::shared_ptr<Command>> m_Commands;
 };
@@ -72,6 +74,7 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 
 Application::~Application()
 {
+	m_Impl->m_ShuttingDown = true;
 	m_Impl->m_Dispatch->Stop();
 	m_Impl->m_Windows.clear();
 	m_Impl->m_Text.reset();
@@ -83,12 +86,14 @@ Application::~Application()
 Result<Window*> Application::CreateWindow(const WindowConfig& config)
 {
 	assert(m_Impl->m_Thread == std::this_thread::get_id());
+	if (m_Impl->m_ShuttingDown) return std::unexpected(Error{ErrorCode::InvalidArgument, "The application is shutting down."});
 	if (config.m_Width <= 0 || config.m_Height <= 0 || config.m_MinWidth <= 0 || config.m_MinHeight <= 0)
 		return std::unexpected(Error{ErrorCode::InvalidArgument, "Window dimensions must be positive."});
 	auto impl = std::make_unique<Window::Impl>();
 	impl->m_Config = config;
 	impl->m_Text = m_Impl->m_Text.get();
 	impl->m_Motion = m_Impl->m_Config.m_Motion;
+	impl->m_Dispatcher = GetDispatcher();
 	impl->m_Tree.m_ApplicationCommand = [this](KeyEvent& event)
 	{
 		const auto commands = m_Impl->m_Commands;
@@ -201,6 +206,11 @@ Result<bool> Application::Poll(bool wait)
 	for (auto* window : requested)
 	{
 		window->m_Impl->m_Close.Process(window->m_CloseRequested);
+		if (!window->IsOpen())
+		{
+			window->m_Impl->m_FileDialog.reset();
+			window->m_Impl->m_Tree.CloseAllPopups();
+		}
 	}
 	std::vector<Window*> closing;
 	for (const auto& window : m_Impl->m_Windows)
@@ -212,13 +222,15 @@ Result<bool> Application::Poll(bool wait)
 		}
 	}
 	for (auto* window : closing) window->m_Closed.Emit();
-	for (const auto& window : m_Impl->m_Windows)
+	std::vector<Window*> ownedWindows;
+	for (const auto& window : m_Impl->m_Windows) ownedWindows.push_back(window.get());
+	for (auto* window : ownedWindows)
 		if (window->m_Impl->m_ParentWindow && !window->m_Impl->m_ParentWindow->IsOpen())
 		{
 			auto cleared = window->SetOwner(nullptr);
 			if (!cleared) return std::unexpected(cleared.error());
 		}
-	std::erase_if(m_Impl->m_Windows, [](const auto& window) { return !window->IsOpen() && window->m_Impl->m_Close.m_Notified; });
+	Detail::RetireMatching(m_Impl->m_Windows, [](const Window& window) { return !window.IsOpen() && window.m_Impl->m_Close.m_Notified; });
 	if (!closing.empty() && m_Impl->m_Windows.empty()) m_Impl->m_Dispatch->Stop();
 	std::vector<Window*> windows;
 	for (const auto& window : m_Impl->m_Windows) windows.push_back(window.get());

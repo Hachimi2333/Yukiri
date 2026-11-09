@@ -23,7 +23,9 @@ Window::Window(std::unique_ptr<Impl> impl) : m_Impl(std::move(impl))
 
 Window::~Window()
 {
+	m_Impl->m_FileDialog.reset();
 	m_Impl->m_Events.reset();
+	m_Impl->m_Tree.CloseAllPopups(false);
 	m_Impl->m_Statistics.Print(SDL_GetWindowID(m_Impl->m_Native), m_Impl->m_Pacer.GetInterval());
 	m_Impl->m_Tree.SetRoot(nullptr);
 	m_Impl->m_Chrome.reset();
@@ -43,6 +45,20 @@ void Window::SetTitle(std::string_view title)
 void Window::Close() { m_Impl->m_Close.Request(); }
 void Window::AddCommand(std::shared_ptr<Command> command) { if (command) m_Impl->m_Tree.m_Commands.push_back(std::move(command)); }
 void Window::RemoveCommand(const Command& command) { std::erase_if(m_Impl->m_Tree.m_Commands, [&](const auto& entry) { return entry.get() == &command; }); }
+Connection Window::ConnectCommand(std::shared_ptr<Command> command)
+{
+	if (!command) return {};
+	return m_Impl->m_Tree.m_CommandBindings.Connect([command = std::move(command)](KeyEvent& event)
+	{
+		if (!event.m_Handled) command->TryExecute(event);
+	});
+}
+Dispatcher Window::GetDispatcher() const { return m_Impl->m_Dispatcher; }
+Result<Widget*> Window::OpenPopup(Widget* owner, std::unique_ptr<Widget> content, Rect anchor,
+	bool modal, bool beside, bool interactive, std::function<void()> canceled)
+{
+	return m_Impl->m_Tree.OpenPopup(owner, std::move(content), anchor, modal, beside, interactive, std::move(canceled));
+}
 Window* Window::GetOwner() const noexcept { return m_Impl->m_ParentWindow; }
 void Window::Invalidate() { m_Impl->m_Dirty = m_Impl->m_Tree.m_Dirty = true; }
 bool Window::IsOpen() const noexcept { return m_Impl->m_Close.m_Open; }

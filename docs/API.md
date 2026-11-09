@@ -97,6 +97,16 @@ Label 支持 SetWrap、SetEllipsis、SetTextAlignment；省略号用于非换行
 
 Button 和 Command 可使用 SetIcon 提供 Image；命令绑定同步按钮图标，按钮文字在窄宽度下使用字素安全的省略号。普通按钮显示命令的勾选状态，动作负责修改状态；CheckBox / ToggleSwitch / RadioButton 绑定可勾选命令后会同步状态，用户切换控件时先更新该状态再执行命令。
 
+## 菜单、提示与对话框
+
+MenuBar::SetItems 接受 ContextMenu::Item 的层级数组。Item::Action 绑定共享 Command，Submenu 提供标题及子项，Divider 提供分隔线；顶层标题的 & 标记 ASCII 助记键，&& 表示字面 &。菜单栏自动连接窗口快捷键，F10 或 Alt+助记键进入菜单。菜单支持上下 / Home / End / PageUp / PageDown、左右子菜单、Enter / Space 执行和 Escape 逐层退出；滚轮可访问高于窗口的菜单。图标、启用、勾选和快捷键文本来自 Command。命令勾选仍由应用更新。
+
+ContextMenu::Show(owner, items, localPosition) 在所属窗口打开上下文菜单；Bind(owner, items) 同时绑定右键释放、菜单键及 Shift+F10，位置使用 owner 的局部坐标。MenuBar 和 ContextMenu 的子项是数据，菜单不为每一行创建常驻 Widget。ToolBar / StatusBar 是带主题背景的布局容器；Separator 支持水平 / 垂直方向。Widget::SetToolTip 设置 500ms 悬停提示，提示不抢焦点，按下、滚动、失焦和销毁时撤销。
+
+Dialog::Show(window, unique_ptr<Dialog>) 把所有权交给窗口模态层，返回非拥有观察指针；SetContent 提供内容，SetButtons 配置结果按钮。m_Completed 回调异步结果式完成，不嵌套调用 Poll；m_CloseRequested 可以否决正常完成。Escape 使用取消结果，Enter 使用默认按钮，但保留按钮、ComboBox 和多行编辑器本身的 Enter 语义；IME 组合期间按键留给编辑器。关闭窗口强制取消模态内容。MessageDialog::Show 提供常见按钮组合。
+
+FileDialog::Open / Save / SelectFolder 接受 Window、Config 和回调，立即返回启动结果；回调在 UI 线程收到 Result<vector<filesystem::path>>。空成功数组表示用户取消，unexpected 表示错误。Config 包括标题、默认路径、过滤器（如 *.txt;*.md）、默认扩展名与多选；保存不允许多选。每个所属窗口同时只允许一个请求。Cancel 请求取消；窗口确定关闭或应用析构时取消并清理工作线程，丢弃迟到结果。Windows IFileDialog 在独立 STA 运行，框架不改变进程工作目录；关闭清理只泵送必要的原生消息，不重入 Yukiri::Poll。
+
 ## 图片
 
 Image 是可复制的共享不可变资源，Load 接受 filesystem::path，FromMemory 接受编码字节，FromRgba 接受精确的 width * height * 4 字节。GetPixels 返回资源持有期间有效的直通 Alpha RGBA8 视图；SVG 的该视图为原始尺寸栅格结果，绘制时另按 DPI 重栅格化。支持 PNG / JPEG / BMP / ICO 与静态 SVG，不支持动画图像；SVG 使用自包含文档，不承诺外部资源或完整浏览器 SVG 特性。
