@@ -147,7 +147,7 @@ Gallery::Gallery(Application& application, Window& window) : m_Application(appli
 	m_Tabs->AddTab("Text & Canvas / 文字与绘制", std::move(textPage));
 	m_Tabs->AddTab("Desktop / 桌面基础", MakeFoundationSamples());
 	auto about = std::make_unique<Card>();
-	Heading(*about, "Yukiri 0.1.0", 24);
+	Heading(*about, "Yukiri 0.2.0", 24);
 	auto& description = Heading(*about, "C++23 · Retained widgets · Vulkan 1.4\nSDL3 · FreeType · HarfBuzz\n\nWindows preview. Linux support is planned.\nUse Tab / Shift+Tab to navigate and arrow keys to adjust controls.", 14);
 	description.SetWrap(true);
 	m_Tabs->AddTab("About / 关于", std::move(about));

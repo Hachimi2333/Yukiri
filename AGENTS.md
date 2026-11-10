@@ -2,7 +2,7 @@
 
 ## Product and architecture
 
-- Yukiri is a C++23 retained-mode desktop GUI static library. The current delivery is 0.1.0 on Windows 10 22H2 / Windows 11 x64 with MSVC and MinGW.
+- Yukiri is a C++23 retained-mode desktop GUI static library. The current delivery is 0.2.0 on Windows 10 22H2 / Windows 11 x64 with MSVC and MinGW.
 - Default windows and the demo to custom decorations; retain explicit native decoration support and test both.
 - Keep Yukiri branding in demo resources. Custom decorations may display the host executable's icon; do not embed the Yukiri logo in the framework library or require external icon files at runtime.
 - Keep public interfaces independent of SDL, Vulkan, FreeType, and HarfBuzz types. Platform details belong in platform adapters; Vulkan details belong in the renderer.

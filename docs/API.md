@@ -6,7 +6,7 @@ WindowDecoration 提供 Native / Custom，默认为 Custom，创建时确定。T
 
 Application::Create 返回 expected<unique_ptr<Application>, Error>；CreateWindow 返回由 Application 拥有的 Window 观察指针，窗口关闭并完成下一次 Poll 后该指针失效；保存返回的 Connection 以监听 m_Closed，并在回调内清空外部观察指针。Run 驱动主循环，Poll 可用于外部循环。所有窗口 / UI API 在创建 Application 的线程调用。Poll 不可重入；失败返回 ErrorCode::InvalidArgument。
 
-Close 合并关闭请求，在下一次 Poll 的安全边界发送 m_CloseRequested。回调可设置 CloseRequestEvent::m_Cancel=true 暂缓关闭，例如异步保存确认；用户确认后再次调用 Close。系统关闭和 Quit 使用相同规则。IsOpen 在请求接受后变为 false，m_Closed 在实际释放之前仅发送一次。创建窗口的配置先校验尺寸；m_Visible=false 可用于用户启动的 GPU smoke。
+Close 合并关闭请求，在下一次 Poll 的安全边界发送 m_CloseRequested。回调可设置 CloseRequestEvent::m_Cancel=true 暂缓关闭，例如异步保存确认；用户确认后再次调用 Close。系统关闭和 Quit 使用相同规则。IsOpen 在请求接受后变为 false，m_Closed 在实际释放之前仅发送一次。创建窗口的配置先校验尺寸；m_Visible=false 创建隐藏窗口，隐藏时不呈现；用户主动运行 GPU 检查时须显式 Show。
 
 ## 控件与布局
 

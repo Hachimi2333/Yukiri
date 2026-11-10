@@ -63,7 +63,7 @@ GPU 检查可自行运行 `tools/GpuSmoke.ps1 -Preset msvc-release`，日志写�
 - [ ] F2 / 双击文本编辑、Enter 提交、Escape 取消、失焦提交及无效内容反馈正确；勾选可操作。
 - [ ] 十万行持续滚动无明显停顿，窗口 / 数据反复销毁不持续积累控件和图片资源。
 
-无障碍检查会随对应阶段交付补充。
+无障碍与完整 Demo 场景的操作步骤如下；均尚未执行。
 
 ## 0.2 Windows 无障碍（用户启动，尚未执行）
 
@@ -88,3 +88,20 @@ GPU 检查可自行运行 `tools/GpuSmoke.ps1 -Preset msvc-release`，日志写�
 3. 输入 100000 行后 Ctrl+L，检查进度、交互响应和滚动；加载中取消，已加载行保留。立即重新加载或关闭窗口，检查无迟到回调崩溃。
 4. 交替运行原生 / 自绘窗口和浅 / 深主题，检查窄窗口工具栏换行、焦点、图像、字体和文字清晰度。
 5. 使用 GPU 验证层及 Narrator 复验，并在 Validation 记录实际结果；本轮自动检查不执行以上步骤。
+
+## 记录结果
+
+可把以下内容和复现步骤追加到 Validation；未运行填“未执行”，不要用编译结果代替。
+
+```text
+Date:
+Windows version / build:
+Preset / compiler:
+GPU / driver:
+Decoration / theme / DPI / refresh rate:
+Scenario / steps:
+Expected / actual:
+Vulkan validation errors (or not run):
+IME / Narrator version (or not run):
+Log paths:
+```

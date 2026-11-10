@@ -46,7 +46,7 @@ Result<std::unique_ptr<Application>> Application::Create(const ApplicationConfig
 	SDL_SetMainReady();
 	if (!SDL_SetHintWithPriority(SDL_HINT_IME_IMPLEMENTED_UI, "composition", SDL_HINT_OVERRIDE))
 		return std::unexpected(Error{ErrorCode::PlatformInitialization, "Could not enable application-rendered IME composition."});
-	SDL_SetAppMetadata(config.m_Name.c_str(), "0.1.0", "org.yukiri.application");
+	SDL_SetAppMetadata(config.m_Name.c_str(), "0.2.0", "org.yukiri.application");
 	if (!SDL_Init(SDL_INIT_VIDEO))
 		return std::unexpected(Error{ErrorCode::PlatformInitialization, SDL_GetError()});
 	ApplicationActive = true;

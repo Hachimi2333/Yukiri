@@ -1,5 +1,24 @@
 # 验证记录
 
+## 0.2.0 桌面基础交付回归（2026-11-10）
+
+环境：Windows 11 x64 家庭版，10.0.26300；MSVC 19.51.36260.0、MinGW GCC 16.2.0；CMake 4.4.3、Ninja 1.13.2、Vulkan SDK 1.4.363.1。系统报告 NVIDIA GeForce RTX 5060 Laptop GPU（驱动 32.0.16.2114）及 AMD Radeon 610M（32.0.21036.11002）；这里只读取系统信息，没有为本轮验收创建 Vulkan 设备。
+
+| 配置 | 构建 / 公开头 | CPU | 安装 / 重定位 find_package | add_subdirectory |
+|---|---|---|---|---|
+| MSVC Debug | 通过 | 111 / 111 | 配置 / 编译 / 链接通过 | 配置 / 编译 / 链接通过 |
+| MSVC Release | 通过 | 111 / 111 | 配置 / 编译 / 链接通过 | 配置 / 编译 / 链接通过 |
+| MinGW Debug | 通过 | 111 / 111 | 配置 / 编译 / 链接通过 | 配置 / 编译 / 链接通过 |
+| MinGW Release | 通过 | 111 / 111 | 配置 / 编译 / 链接通过 | 配置 / 编译 / 链接通过 |
+
+MinGW Release 的独立源码消费完整编译 HarfBuzz 时，GCC 在上游 hb-algs.hh:1249 发出一条 -Wstringop-overread 警告（glyph-name 查找内联路径）；未改写上游或全局屏蔽诊断，最终链接成功。Yukiri 项目源码未出现编译警告。
+
+本轮自动检查只运行无窗口 CPU 用例。所有消费项目均使用 -BuildOnly，没有运行其可执行文件；安装包移动到新前缀后配置，并禁用 Vulkan SDK 查找，检查静态归档和系统依赖传递。应用只链接 Yukiri::Yukiri，0.2 包请求版本已同步。
+
+构建日志为工作区 out/foundation-<preset>.log；安装消费为 out/foundation-installed-<preset>.log；源码消费为 out/foundation-source-<preset>.log。源码集成的 Release 依赖从源码单独编译，不复用其他工具链二进制。55 个公共头各自生成翻译单元；已检查本轮 192 个项目源码文件的 Tab 缩进及 82 个相对文档链接。最终文档同步安装后，四套安装目录各检查同样的 82 个相对链接。
+
+GPU / 验证层：未执行，因此不报告本轮“零 Vulkan 错误”。真实中文 IME、原生对话框、剪贴板、Narrator、DPI / 跨屏、装饰及完整 Demo 交互：均待用户按 ManualTesting 启动。历史 GPU 数据保留于下方，不计为新增能力验收。全过程未使用 Computer Use、注入桌面输入或修改用户剪贴板。
+
 ## 0.2 Demo 应用流程阶段（2026-11-09）
 
 四套 MSVC / MinGW Debug / Release 完成构建、公开头独立编译及 111 / 111 CPU 测试。新增文件 CPU 覆盖中文路径、UTF-8 BOM、CRLF / CR 规范化、无效 UTF-8 / 二进制拒绝、替换保存、取消后原文保留和临时文件清理，以及保存快照不清除后续编辑。另补单行 / 多行只读状态拒绝迟到提交与组合事件的回归。

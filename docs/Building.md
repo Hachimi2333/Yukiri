@@ -1,6 +1,6 @@
 # 构建与集成
 
-0.2 开发默认使用不干扰桌面的验证：Build.ps1 的 -Test 只运行 CPU 测试，VerifyPackage.ps1 增加 -BuildOnly，只配置 / 编译 / 链接消费程序，不运行它。GPU 与桌面交互由用户按需启动；具体边界见 [实施清单](DesktopFoundations.md)。
+0.2 默认使用不干扰桌面的验证：Build.ps1 的 -Test 只运行 CPU 测试，VerifyPackage.ps1 增加 -BuildOnly，只配置 / 编译 / 链接消费程序，不运行它。GPU 与桌面交互由用户按需启动；具体边界见 [实施清单](DesktopFoundations.md)。
 
 源码构建需要 CMake >= 3.28、Ninja、支持 C++23 的 MSVC 或 MinGW，以及 Vulkan SDK 1.4（本机使用 1.4.363.1）。Windows 运行需要支持 Vulkan 1.4 的驱动；SDK 不替代显卡驱动。
 
@@ -25,11 +25,11 @@ MSVC presets 设置 VSLANG；另窄范围修复中文 showIncludes 的 CMake 编
 ```powershell
 ./out/build/msvc-debug/YukiriDemo.exe
 ./tools/GpuSmoke.ps1 -Preset msvc-debug
-./tools/VerifyPackage.ps1 -Preset msvc-debug
-./tools/VerifyPackage.ps1 -Preset msvc-debug -Source
+./tools/VerifyPackage.ps1 -Preset msvc-debug -BuildOnly
+./tools/VerifyPackage.ps1 -Preset msvc-debug -Source -BuildOnly
 ```
 
-Demo 默认自绘标题栏，主题下拉框旁的“深 / 浅”按钮一键切换当前实际主题；下拉框保留跟随系统。各窗口独立设置，新窗口继承创建来源的模式。`--native` 创建原生主窗口，`--custom` 保留为显式自绘选项，`--smoke` 运行自动 GPU 检查，`--idle-smoke` 验证空闲调度。设置 `YUKIRI_TRACE_FRAMES=1` 可在退出时打印窗口提交帧数。GPU 脚本检查超时、退出码与验证层日志，不加入默认 CTest。
+Demo 默认自绘标题栏，主题下拉框旁的“深 / 浅”按钮一键切换当前实际主题；下拉框保留跟随系统。各窗口独立设置，新窗口继承创建来源的模式。`--native` 创建原生主窗口，`--custom` 保留为显式自绘选项，`--smoke` 运行自动 GPU 检查，`--idle-smoke` 验证空闲调度。设置 `YUKIRI_TRACE_FRAMES=1` 可在退出时打印窗口提交帧数。GPU 脚本检查超时、退出码与验证层日志，不加入默认 CTest。GPU smoke 显式显示原生 / 自绘窗口，只由用户启动；隐藏窗口不会提交绘制。`--editor` / `--data` 进入文档与数据场景，详见 [Demo](Demo.md)。
 
 Demo 的图标通过 RC 资源嵌入，MSVC 使用 Windows SDK 的 rc，MinGW 使用 windres。ICO 已提交到仓库，正常构建不需要 SVG 转换工具；运行 Demo 不需要旁置图标。原始 SVG 与尺寸说明见 assets，Yukiri 标识不链接到框架或消费项目。
 
@@ -53,14 +53,14 @@ target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 ```cmake
 cmake_minimum_required(VERSION 3.28)
 project(MyApp LANGUAGES CXX)
-find_package(Yukiri 0.1 CONFIG REQUIRED)
+find_package(Yukiri 0.2 CONFIG REQUIRED)
 add_executable(MyApp Main.cpp)
 target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 ```
 
 配置时将 `CMAKE_PREFIX_PATH` 指向安装根目录。使用与包匹配的编译器家族、x64 架构、Debug / Release 和兼容运行库；包会拒绝已知不匹配。首版 presets / 包面向 Ninja 单配置生成器，每个配置使用独立安装前缀。MinGW 应用还需将对应编译器运行库加入 PATH 或放到程序旁。
 
-`VerifyPackage.ps1` 复制安装目录后验证独立消费；`-Source` 验证 add_subdirectory。实际执行记录见 [Validation](Validation.md)。
+`VerifyPackage.ps1` 复制安装目录后验证独立消费；`-Source` 验证 add_subdirectory，`-BuildOnly` 禁止运行消费程序，`-Jobs` 控制构建并行数。实际执行记录见 [Validation](Validation.md)。
 
 ## 本机验证
 

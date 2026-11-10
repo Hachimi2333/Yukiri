@@ -1,6 +1,8 @@
 param(
 	[ValidateSet('msvc-debug', 'msvc-release', 'mingw-debug', 'mingw-release')]
 	[string]$Preset = 'msvc-debug',
+	[ValidateRange(1, 128)]
+	[int]$Jobs = 4,
 	[switch]$Source,
 	[switch]$BuildOnly
 )
@@ -50,7 +52,7 @@ try
 	}
 	& cmake @arguments
 	if ($LASTEXITCODE -ne 0) { throw 'Consumer configuration failed.' }
-	& cmake --build $consumerBuild --parallel 4
+	& cmake --build $consumerBuild --parallel $Jobs
 	if ($LASTEXITCODE -ne 0) { throw 'Consumer build failed.' }
 	if (!$BuildOnly)
 	{

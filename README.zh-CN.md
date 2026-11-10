@@ -6,31 +6,32 @@
 
 [English](README.md) | **简体中文**
 
-Yukiri 是以静态库交付的保留模式 GUI 框架，提供 C++ 控件树、类型化主题和 GPU 渲染，并配有交互式控件展示程序。当前版本为 **0.1.0**，先支持 Windows，Linux 支持处于规划中。
+Yukiri 是以静态库交付的保留模式 GUI 框架，提供 C++ 控件树、类型化主题和 GPU 渲染，并配有交互式控件展示程序。当前版本为 **0.2.0**，先支持 Windows，Linux 支持处于规划中。
 
 ## 功能
 
-- Vulkan 1.4 渲染，支持裁剪、圆角图形、透明叠放和文字图集。
-- 保留模式控件，提供子控件独占所有权、布局约束、键盘焦点导航及信号连接。
-- `StackPanel`、`Grid` 和 `Overlay` 布局。
-- `Label`、`Button`、`CheckBox`、`RadioButton`、`ToggleSwitch`、`Slider`、`ProgressBar`、`TextBox`、`ComboBox`、`TabView` 和 `ScrollView`。
-- UTF-8 文字、系统字体回退、FreeType / HarfBuzz 塑形，以及支持输入法预编辑、选区、剪贴板和撤销 / 重做的单行编辑。
-- 跟随系统、浅色及深色主题，可配置的状态动画和平滑滚动。
-- 多窗口，默认自绘标题栏，可显式选择原生装饰。
-- FIFO 垂直同步、适应显示器刷新率的动画调度和按需重绘。
-- 通过 `Yukiri::Yukiri` 提供 CMake 源码集成及可重定位安装包。
+- Vulkan 1.4 绘制：裁剪、圆角、透明度、图片纹理和文字图集；FIFO 呈现、刷新率感知调度与空闲按需重绘。
+- 保留模式控件、父级独占所有权、类型化主题、键盘焦点、信号、命令、UI 任务投递及定时器。
+- 堆叠、网格、叠放、换行、边框和分割布局；系统、浅色、深色主题，基础动效和平滑滚动。
+- 按钮、选择控件、滑块、进度、文字和数值输入、标签页、图片及滚动容器。
+- UTF-8 单行 / 多行编辑、IME 预编辑、字体选择与回退、选择、剪贴板、撤销 / 重做、字面查找替换及密码字段。
+- 菜单栏、右键菜单、工具栏、提示、状态栏、主题化模态对话框与异步原生文件选择。
+- 共享数据 / 选择模型，虚拟化列表、树、表格，稳定 ID、排序及基础文本 / 勾选编辑。
+- 多窗口、可取消关闭，默认自绘标题栏并保留原生装饰。
+- Windows UI Automation 服务端，包含文字范围和按需虚拟数据项。
+- 通过 `Yukiri::Yukiri` 源码集成或使用可重定位静态安装包。
 
 ## 平台状态
 
 | 平台 | 状态 |
 |---|---|
-| Windows 11 x64 | 已在本机验证 MSVC、MinGW 的 Debug 和 Release |
+| Windows 11 x64 | MSVC / MinGW Debug / Release 构建和 CPU 测试通过；0.2 桌面体验待验收 |
 | Windows 10 22H2 x64 | 目标平台，尚待运行验证 |
 | Linux | 规划中 |
 
-Yukiri 仍处于早期阶段，公开 API 可能调整。完整双向段落、多行编辑、系统无障碍接口和更多控件列入后续规划。已实现范围与实际验收边界见[项目状态](docs/Status.md)、[验证记录](docs/Validation.md)和[路线图](FUTURE.md)。
+Yukiri 仍处于早期阶段，公开 API 可能调整。0.2.0 已具备编译器、CPU 和安装包链接覆盖；新增能力的 GPU、原生对话框、真实 IME、Narrator 和桌面交互留给用户启动验收，0.1 历史检查单独记录。详见[状态](docs/Status.md)、[验证记录](docs/Validation.md)和[验收清单](docs/ManualTesting.md)。
 
-0.2 开发分支已增加 UI 调度、定时器、命令、可取消关闭、位图 / SVG、字体选择、自适应布局、菜单、工具栏、提示、主题化模态对话框、异步原生文件对话框、多行编辑、查找替换、密码模式、数值输入、共享模型的虚拟化列表 / 树 / 表格，Windows UI Automation，以及文档 / 数据应用示例。新增能力目前具备编译器和 CPU 覆盖，GPU 与桌面验收分别记录在[里程碑清单](docs/DesktopFoundations.md)。
+Linux、完整双向段落、彩色 Emoji、富文本和其他扩展能力仍在[路线图](FUTURE.md)中。
 
 ## 环境要求
 
@@ -81,15 +82,19 @@ ctest --preset msvc-debug
 
 ## Demo
 
-`YukiriDemo` 展示各类控件、文字编辑、嵌套滚动、自定义 Canvas 绘制、主题切换和多窗口。新窗口继承创建来源窗口的主题设置。
+`YukiriDemo` 保留控件展示，并提供完整文档编辑和共享数据示例。通过 Gallery 按钮或命令行进入工作场景；新窗口继承创建来源窗口的主题设置。
 
 Demo 默认使用自绘标题栏。可以点击原生标题栏按钮，或使用以下参数启动：
 
 ```powershell
 ./out/build/msvc-debug/YukiriDemo.exe --native
+./out/build/msvc-debug/YukiriDemo.exe --editor
+./out/build/msvc-debug/YukiriDemo.exe --data
 ```
 
 `--custom` 显式选择自绘装饰。Yukiri 图标嵌入 Demo 的 EXE；链接框架的应用不会自动携带 Yukiri 品牌。
+
+编辑器展示打开 / 保存、查找替换、撤销及未保存关闭确认；数据场景展示共享选择 / 编辑和最多十万行的可取消后台加载。Demo 文件限于 32 MiB 的 UTF-8 纯文本，保存为 LF 换行；具体边界见 [Demo 文档](docs/Demo.md)。
 
 ## 集成
 
@@ -123,7 +128,7 @@ target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 cmake_minimum_required(VERSION 3.28)
 project(MyApp LANGUAGES CXX)
 
-find_package(Yukiri 0.1 CONFIG REQUIRED)
+find_package(Yukiri 0.2 CONFIG REQUIRED)
 add_executable(MyApp Main.cpp)
 target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 ```
@@ -162,7 +167,7 @@ int main()
 }
 ```
 
-公开头文件不暴露 SDL、Vulkan、FreeType 或 HarfBuzz 类型。所有权、事件、自定义控件和动画钩子见 [API 文档](docs/API.md)。
+UI API 在应用线程调用；Windows 会将该线程初始化为 COM STA，后台结果通过 Dispatcher 投递。公开头文件不暴露 SDL、Vulkan、FreeType、HarfBuzz 或 COM 类型。所有权、事件、自定义控件和动画钩子见 [API 文档](docs/API.md)。
 
 ## 文档与开发
 
@@ -171,6 +176,7 @@ int main()
 - [文档入口](docs/README.md)
 - [构建、安装与集成](docs/Building.md)
 - [架构](docs/Architecture.md)、[渲染](docs/Rendering.md)、[文字](docs/Text.md)和[样式](docs/Styling.md)
+- [数据模型与视图](docs/Data.md)、[Windows 无障碍](docs/Accessibility.md)、[Demo 流程](docs/Demo.md)
 - [设计决策](docs/Decisions.md)、[项目状态](docs/Status.md)和[路线图](FUTURE.md)
 - [桌面基础里程碑](docs/DesktopFoundations.md)与[用户启动的桌面检查](docs/ManualTesting.md)
 

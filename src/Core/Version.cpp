@@ -4,6 +4,6 @@ namespace Yukiri
 {
 std::string_view GetVersion() noexcept
 {
-	return "0.1.0";
+	return "0.2.0";
 }
 }

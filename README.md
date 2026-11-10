@@ -6,31 +6,32 @@ A C++23 desktop GUI framework with Vulkan rendering and a simple, modern appeara
 
 **English** | [简体中文](README.zh-CN.md)
 
-Yukiri is a retained-mode GUI framework distributed as a static library. It combines a C++ widget tree, typed themes, and GPU rendering, with an interactive control gallery. The current version is **0.1.0**, focused on Windows; Linux support is planned.
+Yukiri is a retained-mode GUI framework distributed as a static library. It combines a C++ widget tree, typed themes, and GPU rendering, with an interactive control gallery. The current version is **0.2.0**, focused on Windows; Linux support is planned.
 
 ## Features
 
-- Vulkan 1.4 rendering with clipping, rounded shapes, transparency, and text atlases.
-- Retained widgets with exclusive child ownership, layout constraints, keyboard focus navigation, and signal connections.
-- `StackPanel`, `Grid`, and `Overlay` layouts.
-- `Label`, `Button`, `CheckBox`, `RadioButton`, `ToggleSwitch`, `Slider`, `ProgressBar`, `TextBox`, `ComboBox`, `TabView`, and `ScrollView`.
-- UTF-8 text, system font fallback, FreeType / HarfBuzz shaping, and single-line editing with IME composition, selection, clipboard, and undo / redo.
-- System, light, and dark themes; configurable state animations and smooth scrolling.
-- Multiple windows, custom title bars by default, and optional native decorations.
-- FIFO vertical synchronization, refresh-aware animation scheduling, and redraws only when needed.
-- CMake source integration and relocatable packages through `Yukiri::Yukiri`.
+- Vulkan 1.4 rendering with clipping, rounded shapes, transparency, image textures and text atlases; FIFO presentation with refresh-aware scheduling and idle redraw suppression.
+- Retained widgets, exclusive child ownership, typed themes, keyboard focus, signals, commands, UI dispatch and timers.
+- Stack, grid, overlay, wrapping, border and split layouts; system, light and dark themes with simple animations and smooth scrolling.
+- Buttons, selection controls, sliders, progress, text and numeric inputs, tabs, image views and scrolling containers.
+- UTF-8 single-line and multiline editing, IME composition, font selection and fallback, selection, clipboard, undo/redo, literal find/replace and password fields.
+- Menu bars, context menus, toolbars, tooltips, status bars, themed modal dialogs and asynchronous native file pickers.
+- Shared item and selection models with virtualized list/tree/table views, stable IDs, sorting and basic text/check editing.
+- Multiple windows, cancelable closing, custom title bars by default and optional native decorations.
+- Windows UI Automation providers, including text ranges and virtual data items.
+- CMake source integration and relocatable static packages through `Yukiri::Yukiri`.
 
 ## Platform status
 
 | Platform | Status |
 |---|---|
-| Windows 11 x64 | Locally validated with MSVC and MinGW, Debug and Release |
+| Windows 11 x64 | MSVC/MinGW Debug/Release builds and CPU tests pass; 0.2 desktop acceptance pending |
 | Windows 10 22H2 x64 | Targeted; runtime validation pending |
 | Linux | Planned |
 
-Yukiri is at an early stage; public APIs may change. Full bidirectional paragraphs, multiline editing, accessibility integration, and additional controls are planned. See [project status](docs/Status.md), [validation records](docs/Validation.md), and the [roadmap](FUTURE.md) for implemented and tested boundaries.
+Yukiri is at an early stage; public APIs may change. Version 0.2.0 has compiler, CPU and package-link coverage. GPU rendering, native dialogs, real IME, Narrator and desktop interaction checks for the new capabilities are left to user-run acceptance; historical 0.1 checks are recorded separately. See [status](docs/Status.md), [validation](docs/Validation.md) and the [acceptance checklist](docs/ManualTesting.md).
 
-The 0.2 development branch adds UI dispatch, timers, commands, cancelable close requests, raster/SVG images, font selection, adaptive layouts, menus, toolbars, tooltips, themed modal dialogs, asynchronous native file dialogs, multiline editing, find/replace, password fields, numeric input, and shared models with virtualized list/tree/table views, Windows UI Automation providers, and document/data workflow demos. New capabilities currently have compiler and CPU coverage; GPU and desktop acceptance are tracked separately in the [milestone checklist](docs/DesktopFoundations.md).
+Linux, full bidirectional paragraphs, color emoji, rich text and other extended capabilities remain on the [roadmap](FUTURE.md).
 
 ## Requirements
 
@@ -81,15 +82,19 @@ ctest --preset msvc-debug
 
 ## Demo
 
-`YukiriDemo` includes a control gallery, editable text, nested scrolling, custom Canvas drawing, theme switching, and additional windows. New windows inherit the creating window's theme setting.
+`YukiriDemo` includes a control gallery and complete document-editing and shared-data examples. Use the gallery buttons or launch the workspaces directly. Newly opened windows inherit the creating window's theme setting.
 
 The Demo starts with a custom title bar. Use its native title bar button or launch it with:
 
 ```powershell
 ./out/build/msvc-debug/YukiriDemo.exe --native
+./out/build/msvc-debug/YukiriDemo.exe --editor
+./out/build/msvc-debug/YukiriDemo.exe --data
 ```
 
 `--custom` explicitly selects custom decorations. The Yukiri icon is embedded in the Demo executable; applications linking the framework do not inherit Yukiri branding.
+
+The editor demonstrates open/save, find/replace, undo and unsaved-close confirmation. The data manager demonstrates shared selection/editing and cancelable background loading of up to 100,000 rows. Demo files are UTF-8 plain text, limited to 32 MiB and saved with LF line endings. See the [Demo guide](docs/Demo.md) for workflow boundaries.
 
 ## Integration
 
@@ -123,7 +128,7 @@ In the consuming project:
 cmake_minimum_required(VERSION 3.28)
 project(MyApp LANGUAGES CXX)
 
-find_package(Yukiri 0.1 CONFIG REQUIRED)
+find_package(Yukiri 0.2 CONFIG REQUIRED)
 add_executable(MyApp Main.cpp)
 target_link_libraries(MyApp PRIVATE Yukiri::Yukiri)
 ```
@@ -162,7 +167,7 @@ int main()
 }
 ```
 
-Public headers do not expose SDL, Vulkan, FreeType, or HarfBuzz types. See the [API guide](docs/API.md) for ownership, events, custom widgets, and animation hooks.
+Call UI APIs on the application thread; Windows initializes that thread as COM STA. Use `Dispatcher` for background results. Public headers do not expose SDL, Vulkan, FreeType, HarfBuzz or COM types. See the [API guide](docs/API.md) for ownership, events, custom widgets, and animation hooks.
 
 ## Documentation and development
 
@@ -171,6 +176,7 @@ Most developer documentation is currently in Chinese:
 - [Documentation index](docs/README.md)
 - [Building, packaging, and integration](docs/Building.md)
 - [Architecture](docs/Architecture.md), [rendering](docs/Rendering.md), [text](docs/Text.md), and [styling](docs/Styling.md)
+- [Data models and views](docs/Data.md), [Windows accessibility](docs/Accessibility.md), and [Demo workflows](docs/Demo.md)
 - [Design decisions](docs/Decisions.md), [project status](docs/Status.md), and [roadmap](FUTURE.md)
 - [Desktop foundations milestone](docs/DesktopFoundations.md) and [user-run desktop checks](docs/ManualTesting.md)
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(Yukiri VERSION 0.1.0 LANGUAGES C CXX)
+project(Yukiri VERSION 0.2.0 LANGUAGES C CXX)
 include(cmake/MsvcDependencies.cmake)
 
 option(YUKIRI_BUILD_DEMO "Build the interactive widget gallery" ${PROJECT_IS_TOP_LEVEL})

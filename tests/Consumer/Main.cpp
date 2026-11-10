@@ -5,7 +5,7 @@
 int main()
 {
 	volatile auto factory = &Yukiri::Application::Create;
-	if (!factory || Yukiri::GetVersion() != "0.1.0") return 1;
+	if (!factory || Yukiri::GetVersion() != "0.2.0") return 1;
 	Yukiri::StackPanel panel;
 	auto& button = panel.AddChild<Yukiri::Button>("Consumer");
 	bool activated = false;
